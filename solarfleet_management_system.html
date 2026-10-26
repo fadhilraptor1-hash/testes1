@@ -1,0 +1,2766 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolarFleet — PT Solar Mandiri Express</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Official Supabase JS SDK (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            solar: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+              800: '#92400e',
+            }
+          },
+          boxShadow: {
+            'card': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+            'card-sm': '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .font-mono-numbers {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    /* Custom thin scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-800 antialiased selection:bg-amber-100 selection:text-amber-900">
+
+  <!-- ==================== AUTH / LOGIN SCREEN ==================== -->
+  <div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900 p-4">
+    <div class="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+      <!-- Header Login -->
+      <div class="p-6 bg-slate-950 text-white border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-amber-600 flex items-center justify-center text-white font-bold shadow-md">
+            <i data-lucide="fuel" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h1 class="text-base font-bold tracking-tight text-white leading-tight">SOLARFLEET ERP</h1>
+            <p class="text-xs text-slate-400 font-mono">PT Solar Mandiri Express</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Login -->
+      <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="p-6 space-y-4">
+        <div id="loginAlertBox" class="hidden p-3 rounded-lg text-xs font-mono border"></div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Email Karyawan / Supir</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+            <input type="email" id="loginEmail" required placeholder="nama@solarmandiri.co.id" class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-200 font-mono focus:outline-none focus:border-amber-600 bg-slate-50 focus:bg-white text-slate-900">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Kata Sandi (Password)</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+            <input type="password" id="loginPassword" required placeholder="Masukkan kata sandi..." class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-200 font-mono focus:outline-none focus:border-amber-600 bg-slate-50 focus:bg-white text-slate-900">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-[11px]">
+          <label class="flex items-center gap-1.5 text-slate-600 cursor-pointer">
+            <input type="checkbox" id="rememberMe" checked class="rounded border-slate-300 text-amber-600 focus:ring-0">
+            <span>Ingat akun di perangkat ini</span>
+          </label>
+        </div>
+
+        <button type="submit" id="btnLoginSubmit" class="w-full py-2.5 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 active:scale-[0.99] text-white text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm">
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          <span>Masuk</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== HEADER ATAS ==================== -->
+  <header class="h-14 bg-white border-b border-slate-200/90 px-4 md:px-6 flex items-center justify-between sticky top-0 z-30">
+    <div class="flex items-center gap-3">
+      <button onclick="toggleMobileDrawer()" class="md:hidden p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-md bg-amber-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+          <i data-lucide="fuel" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <span class="font-bold text-sm tracking-tight text-slate-900 block leading-tight">SOLARFLEET</span>
+          <span class="text-[10px] text-slate-400 font-mono block leading-tight">PT Solar Mandiri Express</span>
+        </div>
+      </div>
+
+      <div class="hidden sm:flex items-center gap-2 pl-4 border-l border-slate-200 ml-3">
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-700 animate-pulse"></span>
+          <span id="cloud-sync-status">Cloud Sync: AKTIF</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center gap-2.5">
+      <div class="hidden lg:flex items-center gap-3 pr-3 text-xs font-mono text-slate-500 border-r border-slate-200">
+        <span>Harga Beli (HPP): <strong class="text-slate-800 font-semibold">Rp 12.900/L</strong></span>
+        <span>•</span>
+        <span>Avg Jual: <strong class="text-emerald-700 font-semibold">Rp 14.250/L</strong></span>
+      </div>
+
+      <!-- User Profile Badge & Logout -->
+      <div class="flex items-center gap-2 pr-2">
+        <div class="text-right hidden sm:block">
+          <span class="text-xs font-semibold text-slate-800 block leading-tight" id="user-display-name">Admin Operasional</span>
+          <span class="text-[10px] text-slate-400 font-mono block leading-tight" id="user-display-email">admin.ops@solarmandiri.co.id</span>
+        </div>
+        <button onclick="handleLogout()" class="p-1.5 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-transparent hover:border-rose-200 transition" title="Keluar / Logout Akun">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <button onclick="openModalDispatch()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium transition active:scale-95 shadow-sm">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+        <span>Buat DO Baru</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== WRAPPER UTAMA ==================== -->
+  <div class="flex-1 flex overflow-hidden">
+    
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="w-64 bg-slate-950 border-r border-slate-800 hidden md:flex flex-col justify-between shrink-0 select-none text-white">
+      <div class="p-3 space-y-1">
+        <div class="px-2.5 pb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">Operasional & Logistik</div>
+        
+        <button onclick="switchTab('dashboard')" id="nav-btn-dashboard" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold text-white bg-slate-800/90 border border-slate-700/80 transition">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="layout-grid" class="w-4 h-4 text-amber-400"></i>
+            <span class="text-white">Live Operations</span>
+          </div>
+          <span class="text-[10px] font-mono text-amber-300 font-semibold px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-800/60">LIVE</span>
+        </button>
+
+        <button onclick="switchTab('trucks')" id="nav-btn-trucks" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-900 transition border border-transparent">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="shield-check" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-slate-200">Armada Truk Tangki</span>
+          </div>
+          <span id="badge-total-trucks" class="text-[10px] font-mono text-slate-300 px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">10</span>
+        </button>
+
+        <button onclick="switchTab('dispatch')" id="nav-btn-dispatch" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-900 transition border border-transparent">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="truck" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-slate-200">Dispatch & Surat Jalan</span>
+          </div>
+          <span id="badge-total-trips" class="text-[10px] font-mono text-slate-300 px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">10</span>
+        </button>
+
+        <div class="pt-5 px-2.5 pb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">Finansial & Audit</div>
+
+        <button onclick="switchTab('payroll')" id="nav-btn-payroll" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-900 transition border border-transparent">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="users" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-slate-200">Karyawan & Payroll</span>
+          </div>
+          <span id="badge-total-employees" class="text-[10px] font-mono text-slate-300 font-semibold px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">10 STAF</span>
+        </button>
+
+        <button onclick="switchTab('report')" id="nav-btn-report" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-900 transition border border-transparent">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-slate-200">Laporan Laba Rugi</span>
+          </div>
+          <span class="text-[10px] font-mono text-emerald-300 bg-emerald-950/70 px-1.5 py-0.5 rounded border border-emerald-800/70 font-semibold">P&L</span>
+        </button>
+
+        <button onclick="switchTab('analytics')" id="nav-btn-analytics" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-900 transition border border-transparent">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="bar-chart-3" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-slate-200">Pusat Laporan & Audit</span>
+          </div>
+          <span class="text-[10px] font-mono text-amber-300 bg-amber-950/70 px-1.5 py-0.5 rounded border border-amber-800/70 font-semibold">REKAP</span>
+        </button>
+      </div>
+
+      <!-- Quick Actions Bottom Sidebar -->
+      <div class="p-3 border-t border-slate-800 bg-slate-900/60 space-y-2">
+        <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+          <span>Kapasitas Muat:</span>
+          <span class="font-bold text-white" id="sb-total-capacity">106 KL</span>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button onclick="openModalTruck()" class="py-1.5 px-2 rounded-md border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-white transition">
+            + Truk
+          </button>
+          <button onclick="openModalEmployee()" class="py-1.5 px-2 rounded-md border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-white transition">
+            + Karyawan
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENT WRAPPER -->
+    <main class="flex-1 overflow-y-auto px-4 md:px-8 py-5 pb-24 md:pb-12 max-w-7xl mx-auto w-full">
+      
+      <!-- Breadcrumb Bar -->
+      <div class="flex items-center justify-between pb-4 text-xs font-mono text-slate-500">
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-400">SolarFleet ERP</span>
+          <span>/</span>
+          <span id="breadcrumb-current-tab" class="text-slate-900 font-medium">Live Operations</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span id="realtime-clock" class="text-slate-600">08:00 WIB</span>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 1: LIVE OPERATIONS (DASHBOARD) ==================== -->
+      <section id="view-dashboard" class="space-y-5">
+        <!-- Top KPI Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div class="p-4 bg-white border border-slate-200 rounded-lg shadow-card">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold block">Total Omzet Penjualan (Gross)</span>
+            <div class="mt-2 text-2xl font-bold font-mono text-slate-900 tabular-nums" id="kpi-gross-rev">Rp 0</div>
+            <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-mono">
+              <span class="text-slate-500">Volume Terkirim:</span>
+              <span id="kpi-vol-shipped" class="text-slate-800 font-semibold">0 Liter</span>
+            </div>
+          </div>
+
+          <div class="p-4 bg-white border border-slate-200 rounded-lg shadow-card">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold block">Modal Beli Solar (HPP Kilang)</span>
+            <div class="mt-2 text-2xl font-bold font-mono text-rose-700 tabular-nums" id="kpi-cogs">Rp 0</div>
+            <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-mono">
+              <span class="text-slate-500">Avg HPP:</span>
+              <span class="text-slate-800 font-semibold font-mono">Rp 12.909 / L</span>
+            </div>
+          </div>
+
+          <div class="p-4 bg-white border border-slate-200 rounded-lg shadow-card">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold block">Biaya Operasional Truk & Supir</span>
+            <div class="mt-2 text-2xl font-bold font-mono text-amber-800 tabular-nums" id="kpi-uang-jalan">Rp 0</div>
+            <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-mono">
+              <span class="text-slate-500">Total Uang Jalan:</span>
+              <span id="kpi-uang-jalan-sub" class="text-slate-800 font-semibold">10 DO Terjadwal</span>
+            </div>
+          </div>
+
+          <div class="p-4 bg-gradient-to-b from-amber-50/50 to-white border border-amber-300 rounded-lg shadow-card">
+            <span class="text-[10px] font-mono text-amber-900 uppercase font-bold block">Estimasi Net Profit (Laba Bersih)</span>
+            <div class="mt-2 text-2xl font-bold font-mono text-amber-900 tabular-nums" id="kpi-net-profit">Rp 0</div>
+            <div class="mt-2 pt-2 border-t border-amber-200 flex items-center justify-between text-[11px] font-mono">
+              <span class="text-slate-600 font-medium">Margin Bersih:</span>
+              <span id="kpi-margin-pct" class="text-emerald-800 font-bold">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 10 Trucks Fleet Status Telemetry -->
+        <div class="bg-white border border-slate-200 rounded-lg shadow-card p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Telematika Status 10 Truk Tangki Hari Ini</h2>
+              <p class="text-[11px] text-slate-500">Monitor kesiapan armada, supir aktif, dan tugas pengiriman</p>
+            </div>
+            <span class="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-semibold">100% OPERATIONAL READY</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5" id="dashboardFleetGrid">
+            <!-- Populated via JavaScript -->
+          </div>
+        </div>
+
+        <!-- Cost Breakdown Bar -->
+        <div class="bg-white border border-slate-200 rounded-lg shadow-card p-4">
+          <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Komposisi Pengeluaran Terhadap Omzet Penjualan</h3>
+          <div class="w-full h-3 rounded-full bg-slate-100 overflow-hidden flex" id="financialBar">
+            <div class="bg-rose-500 h-full" style="width: 82%" title="HPP Modal Solar"></div>
+            <div class="bg-amber-500 h-full" style="width: 10%" title="Uang Jalan & Operasional"></div>
+            <div class="bg-emerald-600 h-full" style="width: 8%" title="Net Profit Margin"></div>
+          </div>
+          <div class="flex flex-wrap items-center gap-4 mt-3 text-[11px] font-mono text-slate-600">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-sm bg-rose-500"></span>
+              <span>HPP Kilang Depot (~82%)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-sm bg-amber-500"></span>
+              <span>Uang Jalan & Insentif Supir (~10%)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-sm bg-emerald-600"></span>
+              <span class="font-bold text-emerald-800">Net Profit Margin (~8%)</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2: ARMADA TRUK TANGKI ==================== -->
+      <section id="view-trucks" class="hidden space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
+          <div>
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight">Manajemen Armada Truk Tangki</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Kelola data 10 unit truk tangki BBM, kapasitas KL, masa berlaku Tera Legal, dan uji KIR</p>
+          </div>
+          <button onclick="openModalTruck()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium transition active:scale-95 shadow-sm">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>+ Tambah Truk Baru</span>
+          </button>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="p-3 bg-white border border-slate-200 rounded-lg shadow-card-sm">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold">Total Armada Terdaftar</span>
+            <div class="text-xl font-bold font-mono text-slate-900 mt-1" id="tm-total-trucks">10 Unit</div>
+          </div>
+          <div class="p-3 bg-white border border-slate-200 rounded-lg shadow-card-sm">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold">Siap Operasi (Aktif)</span>
+            <div class="text-xl font-bold font-mono text-emerald-700 mt-1" id="tm-ready-trucks">10 Unit</div>
+          </div>
+          <div class="p-3 bg-white border border-slate-200 rounded-lg shadow-card-sm">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold">Total Kapasitas Muat</span>
+            <div class="text-xl font-bold font-mono text-amber-800 mt-1" id="tm-total-capacity">106.000 L (106 KL)</div>
+          </div>
+          <div class="p-3 bg-white border border-slate-200 rounded-lg shadow-card-sm">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold">Dalam Perawatan (Bengkel)</span>
+            <div class="text-xl font-bold font-mono text-slate-600 mt-1" id="tm-bengkel-trucks">0 Unit</div>
+          </div>
+        </div>
+
+        <!-- Tabel Armada -->
+        <div class="bg-white border border-slate-200 rounded-lg shadow-card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs data-table border-collapse min-w-[700px]">
+              <thead>
+                <tr class="text-[10px] uppercase font-mono text-slate-500 bg-slate-50 border-b border-slate-200">
+                  <th class="py-2.5 px-3.5 font-semibold">Plat No. Polisi</th>
+                  <th class="py-2.5 px-3 font-semibold">Tipe & Spesifikasi Truk</th>
+                  <th class="py-2.5 px-3 font-semibold">Kapasitas Tangki</th>
+                  <th class="py-2.5 px-3 font-semibold">Supir Default</th>
+                  <th class="py-2.5 px-3 font-semibold">Masa Tera Metrologi</th>
+                  <th class="py-2.5 px-3 font-semibold">Uji KIR Dishub</th>
+                  <th class="py-2.5 px-3 font-semibold text-center">Status Unit</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="truckTableBody" class="divide-y divide-slate-100">
+                <!-- Javascript populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 3: DISPATCH & SURAT JALAN (DO) ==================== -->
+      <section id="view-dispatch" class="hidden space-y-4">
+        
+        <!-- Action Banner Helper -->
+        <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-card-sm">
+          <div class="flex items-start gap-2.5">
+            <div class="p-1.5 rounded-full bg-emerald-100 text-emerald-800 mt-0.5 shrink-0">
+              <i data-lucide="check-check" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <span class="font-bold text-emerald-950 block">Panduan Cepat Menyelesaikan Surat Jalan (DO):</span>
+              <p class="text-emerald-800 mt-0.5">
+                Gunakan tombol hijau <strong class="bg-emerald-100 px-1 py-0.5 rounded font-mono text-emerald-950 font-bold">"✓ Selesaikan"</strong> pada baris pengiriman. Status trip otomatis mengunci laba bersih ke laporan P&L dan mencairkan bonus ritase ke slip gaji supir.
+              </p>
+            </div>
+          </div>
+          <button onclick="openModalDispatch()" class="whitespace-nowrap px-3 py-1.5 rounded bg-emerald-800 hover:bg-emerald-900 text-white font-medium text-xs transition shrink-0">
+            + Buat DO Baru
+          </button>
+        </div>
+
+        <!-- Filter and Search Bar -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 border border-slate-200 rounded-lg shadow-card-sm text-xs">
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+              <input type="text" id="filterSearch" oninput="renderDispatchTable()" placeholder="Cari No. DO / Customer / Plat..." class="pl-8 pr-3 py-1.5 rounded-md border border-slate-200 text-xs w-60 bg-slate-50 focus:bg-white focus:outline-none focus:border-amber-600">
+            </div>
+
+            <div class="flex items-center p-0.5 bg-slate-100 border border-slate-200 rounded-md font-mono text-[11px]">
+              <button onclick="setStatusFilter('ALL')" id="filter-btn-ALL" class="px-2 py-1 rounded bg-white text-slate-900 font-semibold shadow-card-sm">Semua</button>
+              <button onclick="setStatusFilter('LOADING')" id="filter-btn-LOADING" class="px-2 py-1 rounded text-slate-600 hover:text-slate-900">Loading</button>
+              <button onclick="setStatusFilter('JALAN')" id="filter-btn-JALAN" class="px-2 py-1 rounded text-slate-600 hover:text-slate-900">On Way</button>
+              <button onclick="setStatusFilter('SELESAI')" id="filter-btn-SELESAI" class="px-2 py-1 rounded text-slate-600 hover:text-slate-900">Selesai</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 text-slate-500 font-mono text-[11px]">
+            <span>Menampilkan <strong id="dispatch-count" class="text-slate-900">10</strong> Pengiriman Hari Ini</span>
+          </div>
+        </div>
+
+        <!-- Tabel DO -->
+        <div class="bg-white border border-slate-200 rounded-lg shadow-card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs data-table border-collapse min-w-[950px]">
+              <thead>
+                <tr class="text-[10px] uppercase font-mono text-slate-500 bg-slate-50 border-b border-slate-200">
+                  <th class="py-2.5 px-3.5 font-semibold">No. DO / Waktu</th>
+                  <th class="py-2.5 px-3 font-semibold">Truk & Supir Bertugas</th>
+                  <th class="py-2.5 px-3 font-semibold">Customer / Tujuan Bongkar</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Volume (L)</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Harga Jual / HPP</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Uang Jalan</th>
+                  <th class="py-2.5 px-3 font-semibold text-right text-emerald-800 font-bold">Net Profit</th>
+                  <th class="py-2.5 px-3 font-semibold text-center">Status Pengiriman</th>
+                  <th class="py-2.5 px-3 font-semibold text-center">Ubah Status</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="dispatchTableBody" class="divide-y divide-slate-100">
+                <!-- Javascript populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: KARYAWAN & PAYROLL ==================== -->
+      <section id="view-payroll" class="hidden space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
+          <div>
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight">Karyawan & Payroll Supir Tangki</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Penggajian berbasis ritase otomatis: bonus bertambah saat DO diselesaikan</p>
+          </div>
+          <button onclick="openModalEmployee()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium transition active:scale-95 shadow-sm">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>+ Tambah Karyawan / Supir</span>
+          </button>
+        </div>
+
+        <!-- Payroll Metrics -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="p-3 bg-white border border-slate-200 rounded-lg shadow-card-sm">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold">Total Gaji Pokok Harian</span>
+            <div class="text-xl font-bold font-mono text-slate-900 mt-1" id="pay-total-base">Rp 0</div>
+          </div>
+          <div class="p-3 bg-white border border-slate-200 rounded-lg shadow-card-sm">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold">Bonus Ritase Selesai</span>
+            <div class="text-xl font-bold font-mono text-purple-700 mt-1" id="pay-total-bonus">Rp 0</div>
+          </div>
+          <div class="p-3 bg-white border border-slate-200 rounded-lg shadow-card-sm">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold">Potongan Kasbon Berjalan</span>
+            <div class="text-xl font-bold font-mono text-rose-600 mt-1" id="pay-total-kasbon">Rp 0</div>
+          </div>
+          <div class="p-3 bg-white border border-slate-200 rounded-lg shadow-card-sm">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold">Estimasi Total THP Siap Cair</span>
+            <div class="text-xl font-bold font-mono text-amber-900 mt-1" id="pay-total-thp">Rp 0</div>
+          </div>
+        </div>
+
+        <!-- Payroll Table -->
+        <div class="bg-white border border-slate-200 rounded-lg shadow-card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs data-table border-collapse min-w-[850px]">
+              <thead>
+                <tr class="text-[10px] uppercase font-mono text-slate-500 bg-slate-50 border-b border-slate-200">
+                  <th class="py-2.5 px-3.5 font-semibold">Nama Karyawan</th>
+                  <th class="py-2.5 px-3 font-semibold">Jabatan / Armada</th>
+                  <th class="py-2.5 px-3 font-semibold text-center">Ritase Hari Ini</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Gaji Pokok</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Tarif Ritase</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Total Bonus</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Kasbon</th>
+                  <th class="py-2.5 px-3 font-semibold text-right text-amber-900 font-bold">Total THP</th>
+                  <th class="py-2.5 px-3 font-semibold text-center">Slip Gaji</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="payrollTableBody" class="divide-y divide-slate-100">
+                <!-- Javascript populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 5: LAPORAN LABA RUGI (FINANCIAL P&L) ==================== -->
+      <section id="view-report" class="hidden space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
+          <div>
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight">Laporan Laba & Rugi (P&L Statement)</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Ringkasan akrual penjualan BBM Solar HSD, beban pokok penjualan, dan margin bersih operasional</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="window.print()" class="px-3 py-1.5 rounded-md bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition shadow-card-sm">
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+              <span>Cetak Laporan</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="max-w-3xl bg-white border border-slate-200 rounded-lg shadow-card p-6 space-y-6 mx-auto">
+          <div class="border-b border-slate-200 pb-4">
+            <h2 class="text-base font-bold text-slate-900">PT SOLAR MANDIRI EXPRESS</h2>
+            <p class="text-xs text-slate-500 font-mono">Statement of Comprehensive Income (Daily Fleet Basis)</p>
+          </div>
+
+          <div class="space-y-4 text-xs font-mono">
+            <!-- REVENUE SECTION -->
+            <div>
+              <div class="flex justify-between items-center py-1 font-bold text-slate-900 border-b border-slate-200">
+                <span>1. PENDAPATAN OPERASIONAL (GROSS REVENUE)</span>
+                <span id="pl-gross-rev">Rp 0</span>
+              </div>
+              <div class="pl-4 py-1 text-slate-600 flex justify-between">
+                <span>Penjualan Solar Industri HSD B35 (<span id="pl-total-liters">0</span> Liter)</span>
+                <span id="pl-gross-rev-sub">Rp 0</span>
+              </div>
+            </div>
+
+            <!-- COGS SECTION -->
+            <div>
+              <div class="flex justify-between items-center py-1 font-bold text-rose-700 border-b border-slate-200">
+                <span>2. BEBAN POKOK PENJUALAN (HPP KILANG / DEPOT)</span>
+                <span id="pl-total-hpp">Rp 0</span>
+              </div>
+              <div class="pl-4 py-1 text-slate-600 flex justify-between">
+                <span>Penebusan Solar Pertamina Patra Niaga / Depot Swasta</span>
+                <span id="pl-total-hpp-sub">Rp 0</span>
+              </div>
+            </div>
+
+            <!-- GROSS PROFIT -->
+            <div class="bg-slate-50 p-2.5 rounded border border-slate-200 flex justify-between items-center font-bold text-slate-900">
+              <span>LABA KOTOR (GROSS PROFIT MARGIN)</span>
+              <span id="pl-gross-profit" class="text-emerald-700 font-bold">Rp 0</span>
+            </div>
+
+            <!-- OPERATING EXPENSES -->
+            <div>
+              <div class="flex justify-between items-center py-1 font-bold text-amber-900 border-b border-slate-200">
+                <span>3. BIAYA OPERASIONAL PENGIRIMAN & LOGISTIK</span>
+                <span id="pl-total-opex">Rp 0</span>
+              </div>
+              <div class="pl-4 py-1 text-slate-600 flex justify-between">
+                <span>Uang Jalan Armada (BBM Truk, Tol, Uang Makan Supir)</span>
+                <span id="pl-sub-uangjalan">Rp 0</span>
+              </div>
+              <div class="pl-4 py-1 text-slate-600 flex justify-between">
+                <span>Total Insentif Ritase Supir (DO Selesai)</span>
+                <span id="pl-sub-ritase">Rp 0</span>
+              </div>
+            </div>
+
+            <!-- NET PROFIT -->
+            <div class="bg-amber-50/80 p-3 rounded border border-amber-300 flex justify-between items-center font-bold text-sm text-amber-950">
+              <span>LABA BERSIH OPERASIONAL (NET EBITDA)</span>
+              <span id="pl-net-profit" class="text-base text-amber-950 font-bold">Rp 0</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 6: PUSAT LAPORAN & AUDIT TERPADU ==================== -->
+      <section id="view-analytics" class="hidden space-y-5">
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-xl font-bold text-slate-900 tracking-tight">Pusat Laporan & Rekonsiliasi Terpadu</h1>
+              <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-[10px] font-bold">100% TERKUNCI & SINKRON</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Audit silang antara data Surat Jalan (DO), distribusi customer, omzet penjualan, HPP solar, dan margin laba bersih</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="exportReportToCSV()" class="px-3.5 py-1.5 rounded-md bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-mono font-medium flex items-center gap-1.5 transition shadow-card-sm">
+              <i data-lucide="download" class="w-3.5 h-3.5 text-slate-600"></i>
+              <span>Download Excel/CSV</span>
+            </button>
+            <button onclick="window.print()" class="px-3.5 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+              <span>Cetak Laporan</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="bg-white border border-slate-200 p-3.5 rounded-lg shadow-card-sm space-y-3 text-xs">
+          <!-- Row 1: Timeframe & Date Range Pickers -->
+          <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-slate-500 font-semibold font-mono text-[11px] uppercase flex items-center gap-1.5">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600"></i>
+                Timeframe:
+              </span>
+              
+              <div class="flex items-center p-0.5 bg-slate-100 border border-slate-200 rounded-md font-mono text-[11px]">
+                <button onclick="setReportTimeframePreset('ALL')" id="rf-preset-ALL" class="px-2.5 py-1 rounded bg-white text-slate-900 font-semibold shadow-card-sm">Semua</button>
+                <button onclick="setReportTimeframePreset('TODAY')" id="rf-preset-TODAY" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900">Hari Ini</button>
+                <button onclick="setReportTimeframePreset('7DAYS')" id="rf-preset-7DAYS" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900">7 Hari</button>
+                <button onclick="setReportTimeframePreset('MONTH')" id="rf-preset-MONTH" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900">Bulan Ini</button>
+              </div>
+            </div>
+
+            <!-- Custom Date Range Inputs -->
+            <div class="flex items-center gap-2 flex-wrap w-full lg:w-auto">
+              <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
+                <label for="rf-date-start" class="text-[10px] font-mono text-slate-500 uppercase">Dari:</label>
+                <input type="date" id="rf-date-start" onchange="handleCustomDateChange()" class="bg-transparent font-mono text-xs text-slate-800 focus:outline-none">
+              </div>
+              <span class="text-slate-400 font-mono text-xs">s/d</span>
+              <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
+                <label for="rf-date-end" class="text-[10px] font-mono text-slate-500 uppercase">Sampai:</label>
+                <input type="date" id="rf-date-end" onchange="handleCustomDateChange()" class="bg-transparent font-mono text-xs text-slate-800 focus:outline-none">
+              </div>
+              <button onclick="resetDateRangeFilter()" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 border border-transparent hover:border-slate-200" title="Reset Rentang Tanggal">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 2: Customer, Truck, & Status Filters -->
+          <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-2 w-full md:w-auto flex-wrap">
+              <span class="text-slate-500 font-medium font-mono text-[11px] uppercase">Status DO:</span>
+              
+              <div class="flex items-center p-0.5 bg-slate-100 border border-slate-200 rounded-md font-mono text-[11px]">
+                <button onclick="setReportStatusFilter('ALL')" id="rf-status-ALL" class="px-2.5 py-1 rounded bg-white text-slate-900 font-semibold shadow-card-sm">Semua Status</button>
+                <button onclick="setReportStatusFilter('SELESAI')" id="rf-status-SELESAI" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900">Trip Terkunci (Selesai)</button>
+                <button onclick="setReportStatusFilter('JALAN')" id="rf-status-JALAN" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900">On Way</button>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2.5 w-full md:w-auto justify-end flex-wrap">
+              <!-- Filter Customer Select -->
+              <select id="rf-select-customer" onchange="renderAnalyticsCenter()" class="bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-amber-600">
+                <option value="ALL">-- Semua Customer --</option>
+              </select>
+
+              <!-- Filter Truck Select -->
+              <select id="rf-select-truck" onchange="renderAnalyticsCenter()" class="bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-amber-600">
+                <option value="ALL">-- Semua Unit Truk --</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audit Summary KPIs (Locked Integrity) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div class="p-4 bg-white border border-slate-200 rounded-lg shadow-card">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold block">Total Ritase Surat Jalan (DO)</span>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span id="rep-kpi-total-do" class="text-2xl font-bold font-mono text-slate-900">0</span>
+              <span class="text-xs text-slate-500 font-mono">DO</span>
+            </div>
+            <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-mono">
+              <span class="text-slate-500">Terkunci Selesai:</span>
+              <span id="rep-kpi-completed-do" class="text-emerald-700 font-semibold">0 DO</span>
+            </div>
+          </div>
+
+          <div class="p-4 bg-white border border-slate-200 rounded-lg shadow-card">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold block">Volume Solar Terdistribusi</span>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span id="rep-kpi-volume" class="text-2xl font-bold font-mono text-slate-900">0</span>
+              <span class="text-xs font-mono text-slate-500">Liter</span>
+            </div>
+            <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-mono">
+              <span class="text-slate-500">Satuan KL:</span>
+              <span id="rep-kpi-volume-kl" class="text-amber-800 font-semibold">0.0 KL</span>
+            </div>
+          </div>
+
+          <div class="p-4 bg-white border border-slate-200 rounded-lg shadow-card">
+            <span class="text-[10px] font-mono text-slate-400 uppercase font-semibold block">Total Biaya Operasional & Uang Jalan</span>
+            <div class="mt-2 text-2xl font-bold font-mono text-rose-700 tabular-nums" id="rep-kpi-total-cost">Rp 0</div>
+            <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-mono">
+              <span class="text-slate-500">Beban Uang Jalan:</span>
+              <span id="rep-kpi-cost-pct" class="text-slate-700 font-semibold">0% dari Omzet</span>
+            </div>
+          </div>
+
+          <div class="p-4 bg-gradient-to-b from-amber-50/60 to-white border border-amber-300 rounded-lg shadow-card">
+            <span class="text-[10px] font-mono text-amber-900 uppercase font-bold block">Net Profit Terkunci (EBITDA)</span>
+            <div class="mt-2 text-2xl font-bold font-mono text-amber-900 tabular-nums" id="rep-kpi-net-profit">Rp 0</div>
+            <div class="mt-2 pt-2 border-t border-amber-200 flex items-center justify-between text-[11px] font-mono">
+              <span class="text-slate-600 font-medium">Laba Rata-rata/Liter:</span>
+              <span id="rep-kpi-profit-per-liter" class="text-emerald-800 font-bold">Rp 0/L</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- LAPORAN DETAIL 1: REKAPITULASI PENGIRIMAN PER CUSTOMER -->
+        <div class="bg-white border border-slate-200 rounded-lg shadow-card overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+            <div class="flex items-center gap-2">
+              <i data-lucide="building-2" class="w-4 h-4 text-slate-600"></i>
+              <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">1. Laporan Distribusi BBM Solar per Customer / Industri</h3>
+            </div>
+            <span class="text-[10px] font-mono text-slate-500 font-semibold bg-white px-2 py-0.5 rounded border border-slate-200">SALES & DESTINATION AUDIT</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs data-table border-collapse min-w-[850px]">
+              <thead>
+                <tr class="text-[10px] uppercase font-mono text-slate-500 bg-slate-50 border-b border-slate-200">
+                  <th class="py-2.5 px-3.5 font-semibold">Nama Customer / Pabrik</th>
+                  <th class="py-2.5 px-3 font-semibold text-center">Total DO</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Volume Terkirim</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Total Tagihan (Gross)</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">HPP Kilang</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Uang Jalan Truk</th>
+                  <th class="py-2.5 px-3 font-semibold text-right text-emerald-800 font-bold">Laba Bersih DO</th>
+                  <th class="py-2.5 px-3 font-semibold text-center">Status Audit</th>
+                </tr>
+              </thead>
+              <tbody id="reportCustomerTableBody" class="divide-y divide-slate-100">
+                <!-- JS populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- LAPORAN DETAIL 2: LAPORAN REKONSILIASI SURAT JALAN (DO) TERINCI -->
+        <div class="bg-white border border-slate-200 rounded-lg shadow-card overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+            <div class="flex items-center gap-2">
+              <i data-lucide="file-check-2" class="w-4 h-4 text-slate-600"></i>
+              <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">2. Laporan Rekonsiliasi Surat Jalan (DO) Terinci & Audit Trail</h3>
+            </div>
+            <span class="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-semibold">DO RECONCILIATION</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs data-table border-collapse min-w-[1000px]">
+              <thead>
+                <tr class="text-[10px] uppercase font-mono text-slate-500 bg-slate-50 border-b border-slate-200">
+                  <th class="py-2.5 px-3.5 font-semibold">No. Surat Jalan / Jam</th>
+                  <th class="py-2.5 px-3 font-semibold">Customer & Alamat Tujuan</th>
+                  <th class="py-2.5 px-3 font-semibold">Armada & Supir</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Volume (KL)</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Harga Jual / HPP</th>
+                  <th class="py-2.5 px-3 font-semibold text-right">Uang Jalan</th>
+                  <th class="py-2.5 px-3 font-semibold text-right text-emerald-800 font-bold">Net Margin</th>
+                  <th class="py-2.5 px-3 font-semibold text-center">Status Surat Jalan</th>
+                  <th class="py-2.5 px-3 font-semibold text-center">Tanda Terima</th>
+                </tr>
+              </thead>
+              <tbody id="reportDOTableBody" class="divide-y divide-slate-100">
+                <!-- JS populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==================== MOBILE BOTTOM NAVIGATION ==================== -->
+  <div class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur border-t border-slate-200 z-40 flex items-center justify-around px-2">
+    <button onclick="switchTab('dashboard')" id="m-btn-dashboard" class="flex flex-col items-center gap-1 text-amber-700 text-[10px] font-mono font-semibold">
+      <i data-lucide="layout-grid" class="w-4 h-4"></i>
+      <span>Operasi</span>
+    </button>
+    <button onclick="switchTab('trucks')" id="m-btn-trucks" class="flex flex-col items-center gap-1 text-slate-500 text-[10px] font-mono">
+      <i data-lucide="shield-check" class="w-4 h-4"></i>
+      <span>Armada</span>
+    </button>
+    <button onclick="switchTab('dispatch')" id="m-btn-dispatch" class="flex flex-col items-center gap-1 text-slate-500 text-[10px] font-mono">
+      <i data-lucide="truck" class="w-4 h-4"></i>
+      <span>DO Jalan</span>
+    </button>
+    <button onclick="switchTab('payroll')" id="m-btn-payroll" class="flex flex-col items-center gap-1 text-slate-500 text-[10px] font-mono">
+      <i data-lucide="users" class="w-4 h-4"></i>
+      <span>Payroll</span>
+    </button>
+    <button onclick="switchTab('analytics')" id="m-btn-analytics" class="flex flex-col items-center gap-1 text-slate-500 text-[10px] font-mono">
+      <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+      <span>Laporan</span>
+    </button>
+  </div>
+
+  <!-- Mobile Drawer Menu Modal -->
+  <div id="mobileDrawer" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex-col justify-end">
+    <div class="bg-white rounded-t-xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3 border-slate-100">
+        <span class="font-bold text-sm text-slate-900">Menu Navigasi SolarFleet</span>
+        <button onclick="toggleMobileDrawer()" class="p-1 rounded-md text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="space-y-1.5 text-xs">
+        <button onclick="switchTab('dashboard'); toggleMobileDrawer();" class="w-full text-left py-2 px-3 rounded hover:bg-slate-100 font-medium">1. Live Operations</button>
+        <button onclick="switchTab('trucks'); toggleMobileDrawer();" class="w-full text-left py-2 px-3 rounded hover:bg-slate-100 font-medium">2. Armada Truk Tangki</button>
+        <button onclick="switchTab('dispatch'); toggleMobileDrawer();" class="w-full text-left py-2 px-3 rounded hover:bg-slate-100 font-medium">3. Dispatch & Surat Jalan (DO)</button>
+        <button onclick="switchTab('payroll'); toggleMobileDrawer();" class="w-full text-left py-2 px-3 rounded hover:bg-slate-100 font-medium">4. Karyawan & Payroll</button>
+        <button onclick="switchTab('report'); toggleMobileDrawer();" class="w-full text-left py-2 px-3 rounded hover:bg-slate-100 font-medium">5. Laporan Laba Rugi (P&L)</button>
+        <button onclick="switchTab('analytics'); toggleMobileDrawer();" class="w-full text-left py-2 px-3 rounded hover:bg-slate-100 font-medium">6. Pusat Laporan & Audit Terpadu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL FORM: BUAT / EDIT DO ==================== -->
+  <div id="modalDispatch" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden items-center justify-center p-3">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+        <div>
+          <h3 class="font-bold text-sm text-slate-900" id="dispatchModalTitle">Buat Surat Jalan (DO) Pengiriman</h3>
+          <p class="text-[11px] text-slate-500 font-mono">BBM Solar Industri High Speed Diesel (HSD B35)</p>
+        </div>
+        <button onclick="closeModalDispatch()" class="text-slate-400 hover:text-slate-700 p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="formDispatch" onsubmit="saveDispatch(event)" class="p-5 space-y-3.5 text-xs">
+        <input type="hidden" id="formEditId" value="">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Nomor Surat Jalan (DO)</label>
+            <input type="text" id="formDoNumber" required class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Tanggal Pengiriman</label>
+            <input type="date" id="formDoDate" required class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Armada Truk Tangki</label>
+            <select id="formTruck" required onchange="handleTruckSelect()" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+              <!-- JS populated -->
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Supir Bertugas</label>
+            <select id="formDriver" required class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+              <!-- JS populated -->
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Status Pengiriman</label>
+            <select id="formStatus" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs font-semibold focus:outline-none focus:border-amber-600">
+              <option value="LOADING">⏳ LOADING (Proses Pengisian)</option>
+              <option value="JALAN">🚚 ON WAY (Perjalanan)</option>
+              <option value="SELESAI">✅ SELESAI (Terkunci & Diterima)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Nama Customer / Pabrik Tujuan</label>
+            <input type="text" id="formCustomer" required placeholder="Contoh: PT Semen Indonesia - Tuban" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 text-xs focus:outline-none focus:border-amber-600">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Volume (Liter)</label>
+            <input type="number" id="formVolume" required min="1000" step="500" oninput="calculateModalLive()" class="w-full px-2 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Harga Jual (Rp/L)</label>
+            <input type="number" id="formSellPrice" required step="50" oninput="calculateModalLive()" class="w-full px-2 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">HPP Depot (Rp/L)</label>
+            <input type="number" id="formBuyPrice" required step="50" oninput="calculateModalLive()" class="w-full px-2 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Uang Jalan Armada (Rp) — Tol, Solar Truk, Supir</label>
+          <input type="number" id="formUangJalan" required step="50000" oninput="calculateModalLive()" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+        </div>
+
+        <!-- Live Calculation Preview -->
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-md font-mono text-[11px] space-y-1">
+          <div class="flex justify-between text-slate-600">
+            <span>Estimasi Omzet:</span>
+            <span id="previewRevenue" class="font-bold text-slate-800">Rp 0</span>
+          </div>
+          <div class="flex justify-between text-slate-600">
+            <span>HPP Kilang:</span>
+            <span id="previewHpp" class="text-rose-700">Rp 0</span>
+          </div>
+          <div class="flex justify-between text-slate-600">
+            <span>Laba Kotor Trip:</span>
+            <span id="previewGross" class="text-slate-900 font-semibold">Rp 0</span>
+          </div>
+          <div class="flex justify-between pt-1 border-t border-slate-200 font-bold text-xs">
+            <span class="text-emerald-800">Estimasi Net Margin:</span>
+            <span id="previewNetProfit" class="text-emerald-800 font-bold">Rp 0</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModalDispatch()" class="px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
+            Batal
+          </button>
+          <button type="submit" class="px-4 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium transition shadow-sm">
+            Simpan DO Pengiriman
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL FORM: TAMBAH / EDIT TRUK ==================== -->
+  <div id="modalTruck" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden items-center justify-center p-3">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+        <div>
+          <h3 class="font-bold text-sm text-slate-900" id="truckModalTitle">Tambah Armada Truk Tangki</h3>
+          <p class="text-[11px] text-slate-500 font-mono">Spesifikasi kompartemen tangki BBM</p>
+        </div>
+        <button onclick="closeModalTruck()" class="text-slate-400 hover:text-slate-700 p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="formTruckElement" onsubmit="saveTruck(event)" class="p-5 space-y-3.5 text-xs">
+        <input type="hidden" id="truckEditId" value="">
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Nomor Polisi (Plat Truk)</label>
+          <input type="text" id="formTruckPlate" required placeholder="Contoh: B 9901 UFA" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs uppercase focus:outline-none focus:border-amber-600">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Model & Tipe Truk</label>
+            <input type="text" id="formTruckType" required placeholder="Hino Ranger FL 260" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 text-xs focus:outline-none focus:border-amber-600">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Kapasitas Tangki (Liter)</label>
+            <select id="formTruckCapacity" required class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+              <option value="5000">5.000 L (5 KL)</option>
+              <option value="8000" selected>8.000 L (8 KL)</option>
+              <option value="16000">16.000 L (16 KL)</option>
+              <option value="24000">24.000 L (24 KL)</option>
+              <option value="32000">32.000 L (32 KL)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Supir Default Terpasang</label>
+          <select id="formTruckDriver" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 text-xs focus:outline-none focus:border-amber-600">
+            <!-- JS populated -->
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Masa Tera Metrologi</label>
+            <input type="date" id="formTruckTera" required class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Masa Berlaku Uji KIR</label>
+            <input type="date" id="formTruckKir" required class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Status Kesiapan Unit</label>
+          <select id="formTruckStatus" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+            <option value="STANDBY">READY (Siap Operasi / Standby)</option>
+            <option value="BENGKEL">BENGKEL (Servis / Kalibrasi Tangki)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModalTruck()" class="px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
+            Batal
+          </button>
+          <button type="submit" class="px-4 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium transition shadow-sm">
+            Simpan Data Truk
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL FORM: TAMBAH / EDIT KARYAWAN ==================== -->
+  <div id="modalEmployee" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden items-center justify-center p-3">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+        <div>
+          <h3 class="font-bold text-sm text-slate-900" id="employeeModalTitle">Tambah Karyawan & Supir</h3>
+          <p class="text-[11px] text-slate-500 font-mono">Personalia & Skema Insentif Ritase</p>
+        </div>
+        <button onclick="closeModalEmployee()" class="text-slate-400 hover:text-slate-700 p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="formEmployeeElement" onsubmit="saveEmployee(event)" class="p-5 space-y-3.5 text-xs">
+        <input type="hidden" id="empEditId" value="">
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Nama Lengkap Karyawan</label>
+          <input type="text" id="formEmpName" required placeholder="Contoh: Bambang Pamungkas" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 text-xs focus:outline-none focus:border-amber-600">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Jabatan / Role</label>
+            <select id="formEmpRole" required class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 text-xs focus:outline-none focus:border-amber-600">
+              <option value="Supir Tangki Utama">Supir Tangki Utama</option>
+              <option value="Supir Cadangan / Kenek">Supir Cadangan / Kenek</option>
+              <option value="Mekanik Workshop">Mekanik Workshop</option>
+              <option value="Staff Operasional">Staff Operasional</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">No. WhatsApp / HP</label>
+            <input type="text" id="formEmpPhone" placeholder="0812-xxxx-xxxx" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Gaji Pokok / Harian (Rp)</label>
+            <input type="number" id="formEmpBase" required step="5000" value="120000" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Tarif Insentif Ritase (Rp/Trip)</label>
+            <input type="number" id="formEmpRitase" required step="5000" value="150000" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Saldo Kasbon Saat Ini (Rp)</label>
+          <input type="number" id="formEmpKasbon" step="10000" value="0" class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 font-mono text-xs focus:outline-none focus:border-amber-600">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModalEmployee()" class="px-3 py-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
+            Batal
+          </button>
+          <button type="submit" class="px-4 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium transition shadow-sm">
+            Simpan Karyawan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL SLIP GAJI SUPIR ==================== -->
+  <div id="modalSlip" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden items-center justify-center p-3">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-sm w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b pb-3 border-slate-200">
+        <div>
+          <span class="font-bold text-xs uppercase text-slate-900 block">Slip Gaji Terkunci</span>
+          <span class="text-[10px] text-slate-400 font-mono">PT SOLAR MANDIRI EXPRESS</span>
+        </div>
+        <button onclick="closeModalSlip()" class="text-slate-400 hover:text-slate-700">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2 text-xs font-mono" id="slipContent">
+        <!-- JS populated -->
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeModalSlip()" class="px-3 py-1.5 rounded border border-slate-200 text-xs">Tutup</button>
+        <button onclick="window.print()" class="px-3 py-1.5 rounded bg-amber-600 text-white text-xs font-medium">Cetak Slip</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-20 md:bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ==================== JAVASCRIPT APLIKASI UTAMA ==================== -->
+  <script>
+    // ==================== SUPABASE CLIENT CONFIGURATION ====================
+    let supabaseClient = null;
+    let currentSessionUser = null;
+    let isSupabaseConnected = false;
+
+    // Ganti nilai default ini dengan URL & ANON KEY dari project Supabase milikmu jika ingin ditanam langsung
+    const DEFAULT_SB_URL = 'https://oyqspnkbjwqoudemntjt.supabase.co';
+    const DEFAULT_SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.demo-placeholder-key';
+
+    function getSupabaseConfig() {
+      const storedUrl = localStorage.getItem('SOLARFLEET_SB_URL');
+      const storedKey = localStorage.getItem('SOLARFLEET_SB_KEY');
+      return {
+        url: storedUrl || DEFAULT_SB_URL,
+        key: storedKey || DEFAULT_SB_KEY,
+        isCustom: !!(storedUrl && storedKey)
+      };
+    }
+
+    function initSupabase() {
+      const config = getSupabaseConfig();
+      try {
+        if (window.supabase && typeof window.supabase.createClient === 'function') {
+          supabaseClient = window.supabase.createClient(config.url, config.key, {
+            auth: { persistSession: true }
+          });
+          console.log('Supabase client initialized with endpoint:', config.url);
+          
+          if (config.isCustom) {
+            isSupabaseConnected = true;
+            setupSupabaseRealtime();
+            loadAllDataFromSupabase();
+          }
+        }
+      } catch (err) {
+        console.error('Error initializing Supabase client:', err);
+      }
+    }
+
+    // ==================== SUPABASE DATABASE SYNC & REALTIME ENGINE ====================
+    async function loadAllDataFromSupabase() {
+      if (!supabaseClient || !isSupabaseConnected) return;
+
+      try {
+        const syncStatusEl = document.getElementById('cloud-sync-status');
+        if (syncStatusEl) syncStatusEl.innerText = 'Syncing...';
+
+        // 1. Fetch Trucks
+        const { data: dbTrucks, error: errTrucks } = await supabaseClient
+          .from('trucks')
+          .select('*')
+          .order('id', { ascending: true });
+
+        if (!errTrucks && dbTrucks && dbTrucks.length > 0) {
+          FLEET_TRUCKS = dbTrucks.map(t => ({
+            id: t.id,
+            plate: t.plate,
+            type: t.type,
+            capacity: Number(t.capacity),
+            assignedDriver: t.assigned_driver_id,
+            teraExpiry: t.tera_expiry,
+            kirExpiry: t.kir_expiry,
+            status: t.status
+          }));
+        }
+
+        // 2. Fetch Drivers
+        const { data: dbDrivers, error: errDrivers } = await supabaseClient
+          .from('drivers')
+          .select('*')
+          .order('id', { ascending: true });
+
+        if (!errDrivers && dbDrivers && dbDrivers.length > 0) {
+          DRIVERS = dbDrivers.map(d => ({
+            id: d.id,
+            name: d.name,
+            role: d.role,
+            phone: d.phone,
+            baseDaily: Number(d.base_daily),
+            ritaseBonus: Number(d.ritase_bonus),
+            kasbon: Number(d.kasbon)
+          }));
+        }
+
+        // 3. Fetch Dispatches
+        const { data: dbDispatches, error: errDispatches } = await supabaseClient
+          .from('dispatches')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!errDispatches && dbDispatches && dbDispatches.length > 0) {
+          dispatches = dbDispatches.map(dp => ({
+            id: dp.id,
+            doNumber: dp.do_number,
+            date: dp.date,
+            time: dp.time,
+            truckId: dp.truck_id,
+            driverId: dp.driver_id,
+            customer: dp.customer,
+            volume: Number(dp.volume),
+            sellPrice: Number(dp.sell_price),
+            buyPrice: Number(dp.buy_price),
+            uangJalan: Number(dp.uang_jalan),
+            status: dp.status
+          }));
+        }
+
+        if (syncStatusEl) syncStatusEl.innerText = 'Supabase: REALTIME';
+        refreshAllViews();
+      } catch (err) {
+        console.error('Failed to load data from Supabase:', err);
+      }
+    }
+
+    // Supabase Realtime multi-device subscription
+    function setupSupabaseRealtime() {
+      if (!supabaseClient) return;
+
+      try {
+        const channel = supabaseClient.channel('solarfleet-db-changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'dispatches' }, () => {
+            loadAllDataFromSupabase();
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'trucks' }, () => {
+            loadAllDataFromSupabase();
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => {
+            loadAllDataFromSupabase();
+          })
+          .subscribe();
+
+        console.log('Supabase Realtime Channel subscribed');
+      } catch (err) {
+        console.warn('Realtime channel error:', err);
+      }
+    }
+
+    // Master Data Truk Tangki (10 Armada) - Default fallback
+    let FLEET_TRUCKS = [
+      { id: 'T01', plate: 'B 9210 UFA', type: 'Hino Ranger FL 260', capacity: 8000, assignedDriver: 'D01', teraExpiry: '2026-11-15', kirExpiry: '2026-09-20', status: 'STANDBY' },
+      { id: 'T02', plate: 'B 9344 UFB', type: 'Isuzu Giga FVR', capacity: 8000, assignedDriver: 'D02', teraExpiry: '2026-12-05', kirExpiry: '2026-10-12', status: 'STANDBY' },
+      { id: 'T03', plate: 'B 9801 UFC', type: 'Mitsubishi Fuso Fighter', capacity: 16000, assignedDriver: 'D03', teraExpiry: '2026-08-30', kirExpiry: '2026-11-01', status: 'STANDBY' },
+      { id: 'T04', plate: 'B 9112 UFD', type: 'Hino Ranger FL 260', capacity: 8000, assignedDriver: 'D04', teraExpiry: '2027-01-10', kirExpiry: '2026-12-14', status: 'STANDBY' },
+      { id: 'T05', plate: 'B 9556 UFE', type: 'Isuzu Giga FVR', capacity: 8000, assignedDriver: 'D05', teraExpiry: '2026-10-22', kirExpiry: '2026-08-18', status: 'STANDBY' },
+      { id: 'T06', plate: 'B 9772 UFF', type: 'Hino Dutro 130 HD', capacity: 5000, assignedDriver: 'D06', teraExpiry: '2026-09-14', kirExpiry: '2026-07-29', status: 'STANDBY' },
+      { id: 'T07', plate: 'B 9331 UFG', type: 'Hino Ranger FL 260', capacity: 8000, assignedDriver: 'D07', teraExpiry: '2027-02-18', kirExpiry: '2026-10-05', status: 'STANDBY' },
+      { id: 'T08', plate: 'B 9884 UFH', type: 'Mitsubishi Fuso Fighter', capacity: 16000, assignedDriver: 'D08', teraExpiry: '2026-11-28', kirExpiry: '2026-09-11', status: 'STANDBY' },
+      { id: 'T09', plate: 'B 9445 UFJ', type: 'Hino Ranger FL 260', capacity: 8000, assignedDriver: 'D09', teraExpiry: '2026-12-19', kirExpiry: '2026-11-20', status: 'STANDBY' },
+      { id: 'T10', plate: 'B 9660 UFK', type: 'Hino Dutro 130 HD', capacity: 5000, assignedDriver: 'D10', teraExpiry: '2026-10-08', kirExpiry: '2026-08-30', status: 'STANDBY' }
+    ];
+
+    // Master Data Supir & Karyawan
+    let DRIVERS = [
+      { id: 'D01', name: 'Rahmat Hidayat', role: 'Supir Tangki Utama', phone: '0812-8812-9901', baseDaily: 120000, ritaseBonus: 150000, kasbon: 200000 },
+      { id: 'D02', name: 'Joko Susilo', role: 'Supir Tangki Utama', phone: '0813-7762-1102', baseDaily: 120000, ritaseBonus: 150000, kasbon: 0 },
+      { id: 'D03', name: 'Agus Triono', role: 'Supir Tangki Utama', phone: '0821-9981-4453', baseDaily: 130000, ritaseBonus: 200000, kasbon: 350000 },
+      { id: 'D04', name: 'Wahyu Hidayat', role: 'Supir Tangki Utama', phone: '0852-1109-8874', baseDaily: 120000, ritaseBonus: 150000, kasbon: 100000 },
+      { id: 'D05', name: 'Deddy Kurniawan', role: 'Supir Tangki Utama', phone: '0812-5544-2235', baseDaily: 120000, ritaseBonus: 150000, kasbon: 0 },
+      { id: 'D06', name: 'Slamet Riyadi', role: 'Supir Tangki Utama', phone: '0813-9090-1126', baseDaily: 110000, ritaseBonus: 125000, kasbon: 50000 },
+      { id: 'D07', name: 'Bambang Irawan', role: 'Supir Tangki Utama', phone: '0878-6655-4437', baseDaily: 120000, ritaseBonus: 150000, kasbon: 0 },
+      { id: 'D08', name: 'Heri Prasetyo', role: 'Supir Tangki Utama', phone: '0812-3344-9988', baseDaily: 130000, ritaseBonus: 200000, kasbon: 150000 },
+      { id: 'D09', name: 'Nanang Suherman', role: 'Supir Tangki Utama', phone: '0856-4433-2219', baseDaily: 120000, ritaseBonus: 150000, kasbon: 0 },
+      { id: 'D10', name: 'Yayan Ruhian', role: 'Supir Tangki Utama', phone: '0813-1122-3340', baseDaily: 110000, ritaseBonus: 125000, kasbon: 75000 }
+    ];
+
+    // Helper untuk tanggal sample
+    const todayISO = new Date().toISOString().split('T')[0];
+    const getPastDateISO = (daysAgo) => {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      return d.toISOString().split('T')[0];
+    };
+
+    // Data 10 Pengiriman Surat Jalan (DO)
+    let dispatches = [
+      { id: 'DSP-01', doNumber: 'DO/SME/2026/1001', date: todayISO, truckId: 'T01', driverId: 'D01', customer: 'PT Semen Indonesia (Tuban Plant)', volume: 8000, sellPrice: 14200, buyPrice: 12900, uangJalan: 1400000, status: 'SELESAI', time: '06:30' },
+      { id: 'DSP-02', doNumber: 'DO/SME/2026/1002', date: todayISO, truckId: 'T02', driverId: 'D02', customer: 'PT Charoen Pokphand (Balaraja)', volume: 8000, sellPrice: 14100, buyPrice: 12900, uangJalan: 1350000, status: 'SELESAI', time: '07:15' },
+      { id: 'DSP-03', doNumber: 'DO/SME/2026/1003', date: todayISO, truckId: 'T03', driverId: 'D03', customer: 'KSO Wika-Adhi Karya (Tol Cijago)', volume: 16000, sellPrice: 14400, buyPrice: 12950, uangJalan: 2200000, status: 'SELESAI', time: '07:45' },
+      { id: 'DSP-04', doNumber: 'DO/SME/2026/1004', date: todayISO, truckId: 'T04', driverId: 'D04', customer: 'PT Mayora Indah (Cikupa Plant)', volume: 8000, sellPrice: 14000, buyPrice: 12900, uangJalan: 1300000, status: 'SELESAI', time: '08:10' },
+      { id: 'DSP-05', doNumber: 'DO/SME/2026/1005', date: todayISO, truckId: 'T05', driverId: 'D05', customer: 'Pabrik Kertas Tjiwi Kimia (Karawang)', volume: 8000, sellPrice: 14150, buyPrice: 12900, uangJalan: 1500000, status: 'JALAN', time: '09:00' },
+      { id: 'DSP-06', doNumber: 'DO/SME/2026/1006', date: getPastDateISO(1), truckId: 'T06', driverId: 'D06', customer: 'Genset Utama RSUD Cibinong', volume: 5000, sellPrice: 14500, buyPrice: 12900, uangJalan: 950000, status: 'SELESAI', time: '09:20' },
+      { id: 'DSP-07', doNumber: 'DO/SME/2026/1007', date: getPastDateISO(1), truckId: 'T07', driverId: 'D07', customer: 'Batching Plant Adhimix (Bekasi Barat)', volume: 8000, sellPrice: 14200, buyPrice: 12900, uangJalan: 1450000, status: 'JALAN', time: '10:05' },
+      { id: 'DSP-08', doNumber: 'DO/SME/2026/1008', date: getPastDateISO(2), truckId: 'T08', driverId: 'D08', customer: 'PT Krakatau Posco (Cilegon)', volume: 16000, sellPrice: 14350, buyPrice: 12950, uangJalan: 2400000, status: 'JALAN', time: '10:40' },
+      { id: 'DSP-09', doNumber: 'DO/SME/2026/1009', date: getPastDateISO(3), truckId: 'T09', driverId: 'D09', customer: 'PT Asahimas Flat Glass (Cikampek)', volume: 8000, sellPrice: 14250, buyPrice: 12900, uangJalan: 1600000, status: 'LOADING', time: '11:15' },
+      { id: 'DSP-10', doNumber: 'DO/SME/2026/1010', date: getPastDateISO(4), truckId: 'T10', driverId: 'D10', customer: 'Mall Summarecon Serpong (Genset)', volume: 5000, sellPrice: 14600, buyPrice: 12900, uangJalan: 900000, status: 'LOADING', time: '11:30' }
+    ];
+
+    let currentFilterStatus = 'ALL';
+    let currentReportStatusFilter = 'ALL';
+    let currentReportTimeframePreset = 'ALL';
+
+    // Formatters
+    function formatRupiah(number) {
+      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
+    }
+
+    function formatNumber(num) {
+      return new Intl.NumberFormat('id-ID').format(num);
+    }
+
+    function refreshIcons() {
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      const isErr = type === 'error';
+      toast.className = `px-3.5 py-2.5 rounded-md border text-xs font-mono flex items-center gap-2 shadow-lg transition-all duration-200 pointer-events-auto ${
+        isErr 
+          ? 'bg-rose-50 border-rose-200 text-rose-800' 
+          : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+      }`;
+      toast.innerHTML = `<span class="w-2 h-2 rounded-full ${isErr ? 'bg-rose-600' : 'bg-emerald-600'}"></span><span class="font-semibold">${message}</span>`;
+      
+      const container = document.getElementById('toastContainer');
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 250);
+      }, 3000);
+    }
+
+    // ==================== CLOUD DATABASE SYNC ENGINE ====================
+    async function initCloudSync() {
+      try {
+        if (!window._fb) {
+          console.warn('Modular Firebase SDK not loaded, continuing in memory mode.');
+          return;
+        }
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'solarfleet-prod-app';
+        let firebaseConfig = null;
+
+        if (typeof __firebase_config !== 'undefined') {
+          firebaseConfig = JSON.parse(__firebase_config);
+        }
+
+        if (!firebaseConfig) {
+          console.log('Running with standalone secure cloud state.');
+          return;
+        }
+
+        const app = window._fb.initializeApp(firebaseConfig);
+        cloudDb = window._fb.getFirestore(app);
+        cloudAuth = window._fb.getAuth(app);
+
+        // Authenticate with priority to custom token
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await window._fb.signInWithCustomToken(cloudAuth, __initial_auth_token);
+        } else {
+          await window._fb.signInAnonymously(cloudAuth);
+        }
+
+        currentUser = cloudAuth.currentUser;
+        if (!currentUser) return;
+
+        isCloudReady = true;
+        const syncStatusEl = document.getElementById('cloud-sync-status');
+        if (syncStatusEl) {
+          syncStatusEl.innerText = 'Cloud Sync: REALTIME';
+        }
+
+        // Setup Realtime Document Listeners (Rule 1: Path /artifacts/{appId}/public/data/{collectionName})
+        const trucksRef = window._fb.doc(cloudDb, 'artifacts', appId, 'public', 'data', 'fleet_trucks');
+        const unsubTrucks = window._fb.onSnapshot(trucksRef, (snap) => {
+          if (snap.exists() && snap.data().items) {
+            FLEET_TRUCKS = snap.data().items;
+            refreshAllViews();
+          } else {
+            // Seed initial data to cloud if empty
+            window._fb.setDoc(trucksRef, { items: FLEET_TRUCKS });
+          }
+        }, (err) => console.error('Trucks cloud error:', err));
+
+        const driversRef = window._fb.doc(cloudDb, 'artifacts', appId, 'public', 'data', 'fleet_drivers');
+        const unsubDrivers = window._fb.onSnapshot(driversRef, (snap) => {
+          if (snap.exists() && snap.data().items) {
+            DRIVERS = snap.data().items;
+            refreshAllViews();
+          } else {
+            window._fb.setDoc(driversRef, { items: DRIVERS });
+          }
+        }, (err) => console.error('Drivers cloud error:', err));
+
+        const dispatchesRef = window._fb.doc(cloudDb, 'artifacts', appId, 'public', 'data', 'fleet_dispatches');
+        const unsubDispatches = window._fb.onSnapshot(dispatchesRef, (snap) => {
+          if (snap.exists() && snap.data().items) {
+            dispatches = snap.data().items;
+            refreshAllViews();
+          } else {
+            window._fb.setDoc(dispatchesRef, { items: dispatches });
+          }
+        }, (err) => console.error('Dispatches cloud error:', err));
+
+        cloudUnsubscribes.push(unsubTrucks, unsubDrivers, unsubDispatches);
+
+      } catch (err) {
+        console.error('Cloud initialization note:', err);
+      }
+    }
+
+    // Helper function to persist changes to Cloud Firestore
+    async function syncToCloud(collectionName, dataArray) {
+      if (!isCloudReady || !cloudDb || !cloudAuth || !cloudAuth.currentUser) {
+        return; // Fallback smoothly to in-memory state
+      }
+      try {
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'solarfleet-prod-app';
+        const docRef = window._fb.doc(cloudDb, 'artifacts', appId, 'public', 'data', collectionName);
+        await window._fb.setDoc(docRef, { items: dataArray, updatedAt: new Date().toISOString() });
+      } catch (error) {
+        console.error(`Failed to sync ${collectionName} to cloud:`, error);
+      }
+    }
+
+    // ==================== AUTHENTICATION & LOGIN UI ====================
+    async function handleLoginSubmit(event) {
+      event.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const btn = document.getElementById('btnLoginSubmit');
+      const alertBox = document.getElementById('loginAlertBox');
+      
+      alertBox.classList.add('hidden');
+      btn.innerHTML = `<span class="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span><span>Memeriksa kredensial...</span>`;
+      btn.disabled = true;
+
+      const config = getSupabaseConfig();
+
+      try {
+        if (config.isCustom && supabaseClient) {
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password,
+          });
+
+          if (error) throw error;
+
+          currentSessionUser = data.user;
+          isSupabaseConnected = true;
+          await loadAllDataFromSupabase();
+          proceedUserLogin(data.user.email, data.user.user_metadata?.full_name || email.split('@')[0]);
+        } else {
+          // Dev Mode / Demo Mode jika belum ada custom key
+          await new Promise(r => setTimeout(r, 650));
+          if (!email || !password) throw new Error('Email dan kata sandi wajib diisi.');
+
+          currentSessionUser = { email: email };
+          proceedUserLogin(email, email.split('@')[0]);
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        alertBox.className = 'p-3 rounded-lg text-xs font-mono border bg-rose-50 border-rose-200 text-rose-700 block';
+        alertBox.innerHTML = `
+          <div class="font-bold mb-1">Gagal Masuk:</div>
+          <div>${err.message || 'Email atau kata sandi tidak cocok.'}</div>
+        `;
+      } finally {
+        btn.innerHTML = `<i data-lucide="log-in" class="w-4 h-4"></i><span>Masuk</span>`;
+        btn.disabled = false;
+        refreshIcons();
+      }
+    }
+
+    function proceedUserLogin(email, rawName) {
+      document.getElementById('user-display-email').innerText = email;
+      const formattedName = rawName.replace(/[\._]/g, ' ').toUpperCase();
+      document.getElementById('user-display-name').innerText = formattedName;
+
+      const authScreen = document.getElementById('authScreen');
+      authScreen.classList.add('opacity-0', 'transition-opacity', 'duration-300', 'pointer-events-none');
+      setTimeout(() => {
+        authScreen.classList.add('hidden');
+        authScreen.classList.remove('flex');
+      }, 300);
+
+      showToast(`Login berhasil via Supabase: Selamat datang, ${formattedName}!`);
+      refreshAllViews();
+    }
+
+    async function handleLogout() {
+      try {
+        if (supabaseClient && supabaseClient.auth) {
+          await supabaseClient.auth.signOut();
+        }
+      } catch (err) {
+        console.warn('Sign out notice:', err);
+      }
+
+      currentSessionUser = null;
+      const authScreen = document.getElementById('authScreen');
+      authScreen.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+      authScreen.classList.add('flex');
+      
+      const pwdInput = document.getElementById('loginPassword');
+      if (pwdInput) pwdInput.value = '';
+
+      showToast('Sesi Supabase telah ditutup.');
+      refreshIcons();
+    }
+
+    function switchTab(tabId) {
+      const tabs = ['dashboard', 'trucks', 'dispatch', 'payroll', 'report', 'analytics'];
+      const tabNames = {
+        'dashboard': 'Live Operations',
+        'trucks': 'Armada Truk Tangki',
+        'dispatch': 'Dispatch & Surat Jalan (DO)',
+        'payroll': 'Karyawan & Payroll',
+        'report': 'Laporan Laba Rugi (P&L)',
+        'analytics': 'Pusat Laporan & Audit Terpadu'
+      };
+
+      tabs.forEach(t => {
+        const viewEl = document.getElementById(`view-${t}`);
+        const navBtn = document.getElementById(`nav-btn-${t}`);
+        const mBtn = document.getElementById(`m-btn-${t}`);
+
+        if (viewEl) {
+          if (t === tabId) {
+            viewEl.classList.remove('hidden');
+          } else {
+            viewEl.classList.add('hidden');
+          }
+        }
+
+        if (navBtn) {
+          if (t === tabId) {
+            navBtn.className = 'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold text-white bg-slate-800/90 border border-slate-700/80 transition';
+          } else {
+            navBtn.className = 'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-900 transition border border-transparent';
+          }
+        }
+
+        if (mBtn) {
+          if (t === tabId) {
+            mBtn.className = 'flex flex-col items-center gap-1 text-amber-700 text-[10px] font-mono font-semibold';
+          } else {
+            mBtn.className = 'flex flex-col items-center gap-1 text-slate-500 text-[10px] font-mono';
+          }
+        }
+      });
+
+      document.getElementById('breadcrumb-current-tab').innerText = tabNames[tabId] || tabId;
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      
+      if (tabId === 'analytics') {
+        renderAnalyticsCenter();
+      }
+
+      refreshIcons();
+    }
+
+    function toggleMobileDrawer() {
+      const drawer = document.getElementById('mobileDrawer');
+      drawer.classList.toggle('hidden');
+      drawer.classList.toggle('flex');
+      refreshIcons();
+    }
+
+    function populateModalSelects() {
+      const tSelect = document.getElementById('formTruck');
+      const dSelect = document.getElementById('formDriver');
+      const truckDriverSelect = document.getElementById('formTruckDriver');
+
+      if (tSelect) {
+        tSelect.innerHTML = FLEET_TRUCKS.map(t => 
+          `<option value="${t.id}">${t.plate} (${t.capacity / 1000} KL) - ${t.type}</option>`
+        ).join('');
+      }
+
+      if (dSelect) {
+        dSelect.innerHTML = DRIVERS.map(d => 
+          `<option value="${d.id}">${d.name} (${d.role})</option>`
+        ).join('');
+      }
+
+      if (truckDriverSelect) {
+        truckDriverSelect.innerHTML = `<option value="">-- Pilih Supir Default --</option>` + 
+          DRIVERS.map(d => `<option value="${d.id}">${d.name} (${d.role})</option>`).join('');
+      }
+
+      // Populate Report Filters
+      const rfCust = document.getElementById('rf-select-customer');
+      if (rfCust) {
+        const uniqueCust = Array.from(new Set(dispatches.map(d => d.customer)));
+        rfCust.innerHTML = `<option value="ALL">-- Semua Customer (${uniqueCust.length}) --</option>` + 
+          uniqueCust.map(c => `<option value="${c}">${c}</option>`).join('');
+      }
+
+      const rfTruck = document.getElementById('rf-select-truck');
+      if (rfTruck) {
+        rfTruck.innerHTML = `<option value="ALL">-- Semua Unit Truk (${FLEET_TRUCKS.length}) --</option>` +
+          FLEET_TRUCKS.map(t => `<option value="${t.id}">${t.plate} - ${t.type}</option>`).join('');
+      }
+    }
+
+    function handleTruckSelect() {
+      const truckId = document.getElementById('formTruck').value;
+      const truck = FLEET_TRUCKS.find(t => t.id === truckId);
+      if (truck) {
+        document.getElementById('formVolume').value = truck.capacity;
+        if (truck.assignedDriver) {
+          document.getElementById('formDriver').value = truck.assignedDriver;
+        }
+        calculateModalLive();
+      }
+    }
+
+    function calculateModalLive() {
+      const vol = parseFloat(document.getElementById('formVolume').value) || 0;
+      const sell = parseFloat(document.getElementById('formSellPrice').value) || 0;
+      const buy = parseFloat(document.getElementById('formBuyPrice').value) || 0;
+      const uangJalan = parseFloat(document.getElementById('formUangJalan').value) || 0;
+
+      const rev = vol * sell;
+      const hpp = vol * buy;
+      const gross = rev - hpp;
+      const net = gross - uangJalan;
+
+      document.getElementById('previewRevenue').innerText = formatRupiah(rev);
+      document.getElementById('previewHpp').innerText = formatRupiah(hpp);
+      document.getElementById('previewGross').innerText = formatRupiah(gross);
+      document.getElementById('previewNetProfit').innerText = formatRupiah(net);
+    }
+
+    function refreshAllViews() {
+      renderDashboard();
+      renderTruckTable();
+      renderDispatchTable();
+      renderPayroll();
+      renderPLReport();
+      renderAnalyticsCenter();
+      populateModalSelects();
+      refreshIcons();
+    }
+
+    // ==================== 1. DASHBOARD TELEMETRY ====================
+    function renderDashboard() {
+      let grossRev = 0;
+      let totalHpp = 0;
+      let totalUangJalan = 0;
+      let totalVolume = 0;
+
+      dispatches.forEach(d => {
+        grossRev += (d.volume * d.sellPrice);
+        totalHpp += (d.volume * d.buyPrice);
+        totalUangJalan += d.uangJalan;
+        totalVolume += d.volume;
+      });
+
+      const netProfit = (grossRev - totalHpp) - totalUangJalan;
+      const marginPct = grossRev > 0 ? ((netProfit / grossRev) * 100).toFixed(1) : 0;
+
+      document.getElementById('kpi-gross-rev').innerText = formatRupiah(grossRev);
+      document.getElementById('kpi-vol-shipped').innerText = `${formatNumber(totalVolume)} Liter (${(totalVolume / 1000).toFixed(0)} KL)`;
+      document.getElementById('kpi-cogs').innerText = formatRupiah(totalHpp);
+      document.getElementById('kpi-uang-jalan').innerText = formatRupiah(totalUangJalan);
+      document.getElementById('kpi-net-profit').innerText = formatRupiah(netProfit);
+      document.getElementById('kpi-margin-pct').innerText = `${marginPct}% Net Margin`;
+
+      // 10 Truk Telemetry Grid
+      const grid = document.getElementById('dashboardFleetGrid');
+      grid.innerHTML = FLEET_TRUCKS.map(t => {
+        const activeTrip = dispatches.find(d => d.truckId === t.id && d.status !== 'SELESAI');
+        const driver = DRIVERS.find(d => d.id === t.assignedDriver);
+        
+        let statusBadge = 'bg-slate-100 text-slate-600 border-slate-200';
+        let statusText = 'STANDBY';
+        let statusDot = 'bg-slate-400';
+
+        if (t.status === 'BENGKEL') {
+          statusBadge = 'bg-rose-50 text-rose-700 border-rose-200';
+          statusText = 'BENGKEL';
+          statusDot = 'bg-rose-600';
+        } else if (activeTrip) {
+          if (activeTrip.status === 'LOADING') {
+            statusBadge = 'bg-amber-50 text-amber-800 border-amber-300';
+            statusText = 'LOADING';
+            statusDot = 'bg-amber-500 animate-pulse';
+          } else {
+            statusBadge = 'bg-blue-50 text-blue-800 border-blue-200';
+            statusText = 'ON WAY';
+            statusDot = 'bg-blue-600 animate-pulse';
+          }
+        }
+
+        return `
+          <div class="p-2.5 rounded-lg border border-slate-200 bg-white hover:border-slate-300 transition">
+            <div class="flex items-center justify-between">
+              <span class="font-mono font-bold text-xs text-slate-900">${t.plate}</span>
+              <span class="inline-flex items-center gap-1 font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded border ${statusBadge}">
+                <span class="w-1.5 h-1.5 rounded-full ${statusDot}"></span>
+                ${statusText}
+              </span>
+            </div>
+            <div class="text-[10px] text-slate-500 mt-1 font-mono">${t.capacity / 1000} KL • ${t.type.split(' ')[0]}</div>
+            <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
+              <span class="text-slate-400 truncate max-w-[80px]">${driver ? driver.name.split(' ')[0] : 'No Driver'}</span>
+              <span class="font-mono text-slate-700 font-semibold">${activeTrip ? '1 Active' : '0 Trip'}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==================== 2. ARMADA TRUK TABLE ====================
+    function renderTruckTable() {
+      const tbody = document.getElementById('truckTableBody');
+      const totalCapacity = FLEET_TRUCKS.reduce((acc, t) => acc + t.capacity, 0);
+      const readyTrucks = FLEET_TRUCKS.filter(t => t.status !== 'BENGKEL').length;
+      const bengkelTrucks = FLEET_TRUCKS.filter(t => t.status === 'BENGKEL').length;
+
+      document.getElementById('tm-total-trucks').innerText = `${FLEET_TRUCKS.length} Unit`;
+      document.getElementById('tm-ready-trucks').innerText = `${readyTrucks} Unit`;
+      document.getElementById('tm-total-capacity').innerText = `${formatNumber(totalCapacity)} L (${totalCapacity / 1000} KL)`;
+      document.getElementById('tm-bengkel-trucks').innerText = `${bengkelTrucks} Unit`;
+      document.getElementById('badge-total-trucks').innerText = FLEET_TRUCKS.length;
+      document.getElementById('sb-total-capacity').innerText = `${totalCapacity / 1000} KL`;
+
+      tbody.innerHTML = FLEET_TRUCKS.map(t => {
+        const driver = DRIVERS.find(d => d.id === t.assignedDriver);
+        const isReady = t.status !== 'BENGKEL';
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-2.5 px-3.5">
+              <span class="font-mono font-bold text-slate-900">${t.plate}</span>
+              <span class="text-[10px] text-slate-400 font-mono block">ID: ${t.id}</span>
+            </td>
+            <td class="py-2.5 px-3">
+              <span class="font-medium text-slate-800">${t.type}</span>
+              <span class="text-[10px] text-slate-400 block font-mono">Tangki Tunggal Baja</span>
+            </td>
+            <td class="py-2.5 px-3 font-mono font-bold text-amber-800">
+              ${t.capacity / 1000} KL <span class="text-[10px] text-slate-500 font-normal">(${formatNumber(t.capacity)} L)</span>
+            </td>
+            <td class="py-2.5 px-3">
+              <span class="font-medium text-slate-800">${driver ? driver.name : '<span class="text-slate-400 italic">Belum Dipasang</span>'}</span>
+            </td>
+            <td class="py-2.5 px-3 font-mono text-[11px] text-slate-600">
+              ${t.teraExpiry}
+            </td>
+            <td class="py-2.5 px-3 font-mono text-[11px] text-slate-600">
+              ${t.kirExpiry}
+            </td>
+            <td class="py-2.5 px-3 text-center">
+              <span class="inline-flex items-center gap-1 font-mono text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                isReady ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+              }">
+                <span class="w-1.5 h-1.5 rounded-full ${isReady ? 'bg-emerald-600' : 'bg-rose-600'}"></span>
+                ${t.status}
+              </span>
+            </td>
+            <td class="py-2.5 px-3 text-right">
+              <div class="inline-flex items-center gap-1.5">
+                <button onclick="editTruck('${t.id}')" class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Edit Truk">
+                  <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteTruck('${t.id}')" class="p-1 rounded text-rose-400 hover:text-rose-700 hover:bg-rose-50" title="Hapus Truk">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ==================== 3. DISPATCH & SURAT JALAN TABLE ====================
+    function setStatusFilter(status) {
+      currentFilterStatus = status;
+      ['ALL', 'LOADING', 'JALAN', 'SELESAI'].forEach(s => {
+        const btn = document.getElementById(`filter-btn-${s}`);
+        if (btn) {
+          if (s === status) {
+            btn.className = 'px-2 py-1 rounded bg-white text-slate-900 font-semibold shadow-card-sm';
+          } else {
+            btn.className = 'px-2 py-1 rounded text-slate-600 hover:text-slate-900';
+          }
+        }
+      });
+      renderDispatchTable();
+    }
+
+    function renderDispatchTable() {
+      const tbody = document.getElementById('dispatchTableBody');
+      const searchQuery = (document.getElementById('filterSearch')?.value || '').toLowerCase();
+
+      const filtered = dispatches.filter(d => {
+        const matchesStatus = currentFilterStatus === 'ALL' || d.status === currentFilterStatus;
+        const matchesQuery = d.doNumber.toLowerCase().includes(searchQuery) || 
+                             d.customer.toLowerCase().includes(searchQuery) ||
+                             d.truckId.toLowerCase().includes(searchQuery);
+        return matchesStatus && matchesQuery;
+      });
+
+      document.getElementById('dispatch-count').innerText = filtered.length;
+      document.getElementById('badge-total-trips').innerText = dispatches.length;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-slate-400 font-mono text-xs">Tidak ada data Surat Jalan yang sesuai filter</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(d => {
+        const truck = FLEET_TRUCKS.find(t => t.id === d.truckId);
+        const driver = DRIVERS.find(drv => drv.id === d.driverId);
+        const grossMargin = (d.volume * d.sellPrice) - (d.volume * d.buyPrice);
+        const netProfit = grossMargin - d.uangJalan;
+        const isFinished = d.status === 'SELESAI';
+
+        let badgeClass = 'bg-amber-50 text-amber-800 border-amber-300';
+        if (d.status === 'JALAN') badgeClass = 'bg-blue-50 text-blue-800 border-blue-200';
+        if (d.status === 'SELESAI') badgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-2.5 px-3.5">
+              <span class="font-mono font-bold text-slate-900">${d.doNumber}</span>
+              <span class="text-[10px] text-slate-400 font-mono block">${d.time} WIB</span>
+            </td>
+            <td class="py-2.5 px-3">
+              <div class="font-mono font-semibold text-slate-800">${truck ? truck.plate : d.truckId}</div>
+              <div class="text-[11px] text-slate-500">${driver ? driver.name : '-'}</div>
+            </td>
+            <td class="py-2.5 px-3">
+              <span class="font-medium text-slate-900 block max-w-xs truncate">${d.customer}</span>
+              <span class="text-[10px] font-mono text-slate-400">BBM Solar Industri HSD</span>
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono font-bold text-amber-800">
+              ${formatNumber(d.volume)} L
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono text-xs">
+              <div class="text-slate-900 font-semibold">${formatRupiah(d.sellPrice)}</div>
+              <div class="text-rose-600 text-[10px]">HPP: ${formatRupiah(d.buyPrice)}</div>
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono text-slate-800">
+              ${formatRupiah(d.uangJalan)}
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono font-bold ${netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}">
+              ${formatRupiah(netProfit)}
+            </td>
+            <td class="py-2.5 px-3 text-center">
+              <span class="inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded border ${badgeClass}">
+                ${d.status === 'LOADING' ? '⏳ LOADING' : d.status === 'JALAN' ? '🚚 ON WAY' : '✅ SELESAI'}
+              </span>
+            </td>
+            <td class="py-2.5 px-3 text-center">
+              <div class="flex items-center justify-center gap-1">
+                ${!isFinished ? `
+                  <button onclick="setDispatchStatusDirect('${d.id}', 'SELESAI')" class="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-[10px] font-bold transition shadow-xs flex items-center gap-1">
+                    <i data-lucide="check" class="w-3 h-3"></i>
+                    <span>Selesaikan</span>
+                  </button>
+                ` : `
+                  <span class="text-[10px] font-mono text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    ✓ TERKUNCI
+                  </span>
+                `}
+
+                <select onchange="setDispatchStatusDirect('${d.id}', this.value)" class="bg-slate-50 border border-slate-200 rounded px-1.5 py-1 text-[10px] font-mono text-slate-700 focus:outline-none focus:border-amber-600">
+                  <option value="LOADING" ${d.status === 'LOADING' ? 'selected' : ''}>Loading</option>
+                  <option value="JALAN" ${d.status === 'JALAN' ? 'selected' : ''}>On Way</option>
+                  <option value="SELESAI" ${d.status === 'SELESAI' ? 'selected' : ''}>Selesai</option>
+                </select>
+              </div>
+            </td>
+            <td class="py-2.5 px-3 text-right">
+              <div class="inline-flex items-center gap-1">
+                <button onclick="editDispatch('${d.id}')" class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Edit DO">
+                  <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteDispatch('${d.id}')" class="p-1 rounded text-rose-400 hover:text-rose-700 hover:bg-rose-50" title="Hapus DO">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function setDispatchStatusDirect(dispatchId, newStatus) {
+      const d = dispatches.find(item => item.id === dispatchId);
+      if (d) {
+        d.status = newStatus;
+        showToast(`Status DO ${d.doNumber} diubah ke: ${newStatus}`);
+
+        // Persist to Supabase Table directly
+        if (supabaseClient && isSupabaseConnected) {
+          try {
+            await supabaseClient
+              .from('dispatches')
+              .update({ status: newStatus, updated_at: new Date().toISOString() })
+              .eq('id', dispatchId);
+          } catch (e) {
+            console.error('Failed to update status on Supabase:', e);
+          }
+        }
+
+        refreshAllViews();
+      }
+    }
+
+    // ==================== 4. PAYROLL & KARYAWAN ====================
+    function renderPayroll() {
+      const tbody = document.getElementById('payrollTableBody');
+      let totalBase = 0;
+      let totalBonus = 0;
+      let totalKasbon = 0;
+      let totalThp = 0;
+
+      document.getElementById('badge-total-employees').innerText = `${DRIVERS.length} STAF`;
+
+      tbody.innerHTML = DRIVERS.map(drv => {
+        const truck = FLEET_TRUCKS.find(t => t.assignedDriver === drv.id);
+        const completedTrips = dispatches.filter(d => d.driverId === drv.id && d.status === 'SELESAI').length;
+        const driverBonus = completedTrips * (drv.ritaseBonus || 0);
+        const thp = (drv.baseDaily + driverBonus) - drv.kasbon;
+
+        totalBase += drv.baseDaily;
+        totalBonus += driverBonus;
+        totalKasbon += drv.kasbon;
+        totalThp += thp;
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-2.5 px-3.5">
+              <span class="font-bold text-slate-900">${drv.name}</span>
+              <span class="text-[10px] text-slate-400 font-mono block">${drv.phone || '-'}</span>
+            </td>
+            <td class="py-2.5 px-3">
+              <span class="font-medium text-slate-800">${drv.role}</span>
+              <span class="text-[10px] text-slate-500 font-mono block">Armada: ${truck ? truck.plate : 'Cadangan'}</span>
+            </td>
+            <td class="py-2.5 px-3 text-center">
+              <span class="font-mono text-xs font-bold px-2 py-0.5 rounded ${
+                completedTrips > 0 ? 'bg-purple-50 text-purple-800 border border-purple-200' : 'bg-slate-100 text-slate-500'
+              }">
+                ${completedTrips} Trip
+              </span>
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono text-slate-800">
+              ${formatRupiah(drv.baseDaily)}
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono text-slate-600">
+              ${formatRupiah(drv.ritaseBonus)}/trip
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono font-bold text-purple-700">
+              ${formatRupiah(driverBonus)}
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono text-rose-600">
+              ${drv.kasbon > 0 ? `-${formatRupiah(drv.kasbon)}` : 'Rp 0'}
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono font-bold text-amber-900">
+              ${formatRupiah(thp)}
+            </td>
+            <td class="py-2.5 px-3 text-center">
+              <button onclick="viewSlip('${drv.id}')" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-[10px] transition">
+                Slip Gaji
+              </button>
+            </td>
+            <td class="py-2.5 px-3 text-right">
+              <div class="inline-flex items-center gap-1">
+                <button onclick="editEmployee('${drv.id}')" class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Edit Karyawan">
+                  <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteEmployee('${drv.id}')" class="p-1 rounded text-rose-400 hover:text-rose-700 hover:bg-rose-50" title="Hapus Karyawan">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('pay-total-base').innerText = formatRupiah(totalBase);
+      document.getElementById('pay-total-bonus').innerText = formatRupiah(totalBonus);
+      document.getElementById('pay-total-kasbon').innerText = formatRupiah(totalKasbon);
+      document.getElementById('pay-total-thp').innerText = formatRupiah(totalThp);
+    }
+
+    function viewSlip(driverId) {
+      const drv = DRIVERS.find(d => d.id === driverId);
+      if (!drv) return;
+
+      const truck = FLEET_TRUCKS.find(t => t.assignedDriver === drv.id);
+      const completedTrips = dispatches.filter(d => d.driverId === drv.id && d.status === 'SELESAI').length;
+      const bonus = completedTrips * drv.ritaseBonus;
+      const thp = (drv.baseDaily + bonus) - drv.kasbon;
+
+      document.getElementById('slipContent').innerHTML = `
+        <div class="border-b pb-2">
+          <div class="font-bold text-slate-900 text-sm">${drv.name}</div>
+          <div class="text-[10px] text-slate-500">${drv.role} • Truk: ${truck ? truck.plate : 'Cadangan'}</div>
+        </div>
+        <div class="flex justify-between py-1">
+          <span class="text-slate-600">Gaji Pokok Harian:</span>
+          <span class="font-semibold">${formatRupiah(drv.baseDaily)}</span>
+        </div>
+        <div class="flex justify-between py-1">
+          <span class="text-slate-600">Bonus Ritase (${completedTrips} Trip):</span>
+          <span class="font-bold text-purple-700">+${formatRupiah(bonus)}</span>
+        </div>
+        <div class="flex justify-between py-1">
+          <span class="text-slate-600">Potongan Kasbon:</span>
+          <span class="text-rose-600">-${formatRupiah(drv.kasbon)}</span>
+        </div>
+        <div class="flex justify-between pt-2 border-t font-bold text-sm text-amber-900">
+          <span>THP DITERIMA:</span>
+          <span>${formatRupiah(thp)}</span>
+        </div>
+      `;
+
+      document.getElementById('modalSlip').classList.remove('hidden');
+      document.getElementById('modalSlip').classList.add('flex');
+    }
+
+    function closeModalSlip() {
+      document.getElementById('modalSlip').classList.add('hidden');
+      document.getElementById('modalSlip').classList.remove('flex');
+    }
+
+    // ==================== 5. LAPORAN LABA RUGI (P&L) ====================
+    function renderPLReport() {
+      let grossRev = 0;
+      let totalHpp = 0;
+      let totalUangJalan = 0;
+      let totalVolume = 0;
+
+      dispatches.forEach(d => {
+        grossRev += (d.volume * d.sellPrice);
+        totalHpp += (d.volume * d.buyPrice);
+        totalUangJalan += d.uangJalan;
+        totalVolume += d.volume;
+      });
+
+      let totalRitasePayroll = 0;
+      DRIVERS.forEach(drv => {
+        const completedTrips = dispatches.filter(d => d.driverId === drv.id && d.status === 'SELESAI').length;
+        totalRitasePayroll += (completedTrips * drv.ritaseBonus);
+      });
+
+      const grossProfit = grossRev - totalHpp;
+      const totalOpex = totalUangJalan + totalRitasePayroll;
+      const netProfit = grossProfit - totalOpex;
+
+      document.getElementById('pl-gross-rev').innerText = formatRupiah(grossRev);
+      document.getElementById('pl-gross-rev-sub').innerText = formatRupiah(grossRev);
+      document.getElementById('pl-total-liters').innerText = formatNumber(totalVolume);
+      document.getElementById('pl-total-hpp').innerText = formatRupiah(totalHpp);
+      document.getElementById('pl-total-hpp-sub').innerText = formatRupiah(totalHpp);
+      document.getElementById('pl-gross-profit').innerText = formatRupiah(grossProfit);
+      document.getElementById('pl-total-opex').innerText = formatRupiah(totalOpex);
+      document.getElementById('pl-sub-uangjalan').innerText = formatRupiah(totalUangJalan);
+      document.getElementById('pl-sub-ritase').innerText = formatRupiah(totalRitasePayroll);
+      document.getElementById('pl-net-profit').innerText = formatRupiah(netProfit);
+    }
+
+    // ==================== 6. PUSAT LAPORAN & AUDIT TERPADU (ANALYTICS) ====================
+    function setReportTimeframePreset(preset) {
+      currentReportTimeframePreset = preset;
+      ['ALL', 'TODAY', '7DAYS', 'MONTH'].forEach(p => {
+        const btn = document.getElementById(`rf-preset-${p}`);
+        if (btn) {
+          if (p === preset) {
+            btn.className = 'px-2.5 py-1 rounded bg-white text-slate-900 font-semibold shadow-card-sm';
+          } else {
+            btn.className = 'px-2.5 py-1 rounded text-slate-600 hover:text-slate-900';
+          }
+        }
+      });
+
+      const today = new Date();
+      const startEl = document.getElementById('rf-date-start');
+      const endEl = document.getElementById('rf-date-end');
+
+      if (preset === 'ALL') {
+        if (startEl) startEl.value = '';
+        if (endEl) endEl.value = '';
+      } else if (preset === 'TODAY') {
+        const iso = today.toISOString().split('T')[0];
+        if (startEl) startEl.value = iso;
+        if (endEl) endEl.value = iso;
+      } else if (preset === '7DAYS') {
+        const past = new Date();
+        past.setDate(today.getDate() - 7);
+        if (startEl) startEl.value = past.toISOString().split('T')[0];
+        if (endEl) endEl.value = today.toISOString().split('T')[0];
+      } else if (preset === 'MONTH') {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        if (startEl) startEl.value = firstDay.toISOString().split('T')[0];
+        if (endEl) endEl.value = today.toISOString().split('T')[0];
+      }
+
+      renderAnalyticsCenter();
+    }
+
+    function handleCustomDateChange() {
+      currentReportTimeframePreset = 'CUSTOM';
+      ['ALL', 'TODAY', '7DAYS', 'MONTH'].forEach(p => {
+        const btn = document.getElementById(`rf-preset-${p}`);
+        if (btn) btn.className = 'px-2.5 py-1 rounded text-slate-600 hover:text-slate-900';
+      });
+      renderAnalyticsCenter();
+    }
+
+    function resetDateRangeFilter() {
+      setReportTimeframePreset('ALL');
+    }
+
+    function setReportStatusFilter(status) {
+      currentReportStatusFilter = status;
+      ['ALL', 'SELESAI', 'JALAN'].forEach(s => {
+        const btn = document.getElementById(`rf-status-${s}`);
+        if (btn) {
+          if (s === status) {
+            btn.className = 'px-2.5 py-1 rounded bg-white text-slate-900 font-semibold shadow-card-sm';
+          } else {
+            btn.className = 'px-2.5 py-1 rounded text-slate-600 hover:text-slate-900';
+          }
+        }
+      });
+      renderAnalyticsCenter();
+    }
+
+    function renderAnalyticsCenter() {
+      const selectedCustomer = document.getElementById('rf-select-customer')?.value || 'ALL';
+      const selectedTruck = document.getElementById('rf-select-truck')?.value || 'ALL';
+      const startDate = document.getElementById('rf-date-start')?.value || '';
+      const endDate = document.getElementById('rf-date-end')?.value || '';
+
+      const filtered = dispatches.filter(d => {
+        // Timeframe / Date filtering
+        if (startDate && d.date < startDate) return false;
+        if (endDate && d.date > endDate) return false;
+
+        // Status filtering
+        if (currentReportStatusFilter !== 'ALL' && d.status !== currentReportStatusFilter) return false;
+
+        // Customer & Truck filtering
+        if (selectedCustomer !== 'ALL' && d.customer !== selectedCustomer) return false;
+        if (selectedTruck !== 'ALL' && d.truckId !== selectedTruck) return false;
+
+        return true;
+      });
+
+      const totalDO = filtered.length;
+      const completedDO = filtered.filter(d => d.status === 'SELESAI').length;
+      const totalVolume = filtered.reduce((acc, d) => acc + d.volume, 0);
+      const totalRevenue = filtered.reduce((acc, d) => acc + (d.volume * d.sellPrice), 0);
+      const totalHpp = filtered.reduce((acc, d) => acc + (d.volume * d.buyPrice), 0);
+      const totalUangJalan = filtered.reduce((acc, d) => acc + d.uangJalan, 0);
+
+      const netProfit = (totalRevenue - totalHpp) - totalUangJalan;
+      const profitPerLiter = totalVolume > 0 ? Math.round(netProfit / totalVolume) : 0;
+      const costPct = totalRevenue > 0 ? ((totalUangJalan / totalRevenue) * 100).toFixed(1) : 0;
+
+      document.getElementById('rep-kpi-total-do').innerText = totalDO;
+      document.getElementById('rep-kpi-completed-do').innerText = `${completedDO} / ${totalDO} DO (${totalDO > 0 ? Math.round((completedDO/totalDO)*100) : 0}%)`;
+      document.getElementById('rep-kpi-volume').innerText = formatNumber(totalVolume);
+      document.getElementById('rep-kpi-volume-kl').innerText = `${(totalVolume / 1000).toFixed(1)} KL`;
+      document.getElementById('rep-kpi-total-cost').innerText = formatRupiah(totalUangJalan);
+      document.getElementById('rep-kpi-cost-pct').innerText = `${costPct}% dari Omzet`;
+      document.getElementById('rep-kpi-net-profit').innerText = formatRupiah(netProfit);
+      document.getElementById('rep-kpi-profit-per-liter').innerText = `${formatRupiah(profitPerLiter)} / Liter`;
+
+      // 1. Report Table: Distribution by Customer
+      const custGroup = {};
+      filtered.forEach(d => {
+        if (!custGroup[d.customer]) {
+          custGroup[d.customer] = { count: 0, completed: 0, volume: 0, rev: 0, hpp: 0, uangJalan: 0 };
+        }
+        custGroup[d.customer].count += 1;
+        if (d.status === 'SELESAI') custGroup[d.customer].completed += 1;
+        custGroup[d.customer].volume += d.volume;
+        custGroup[d.customer].rev += (d.volume * d.sellPrice);
+        custGroup[d.customer].hpp += (d.volume * d.buyPrice);
+        custGroup[d.customer].uangJalan += d.uangJalan;
+      });
+
+      const custTBody = document.getElementById('reportCustomerTableBody');
+      const custKeys = Object.keys(custGroup);
+      if (custKeys.length === 0) {
+        custTBody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-400 font-mono">Tidak ada data distribusi untuk timeframe & filter ini</td></tr>`;
+      } else {
+        custTBody.innerHTML = custKeys.map(custName => {
+          const item = custGroup[custName];
+          const grossProfit = item.rev - item.hpp;
+          const net = grossProfit - item.uangJalan;
+          const isFullyLocked = item.completed === item.count;
+
+          return `
+            <tr class="hover:bg-slate-50/80">
+              <td class="py-2.5 px-3.5">
+                <span class="font-bold text-slate-900">${custName}</span>
+                <span class="text-[10px] text-slate-500 font-mono block">BBM SOLAR HSD B35</span>
+              </td>
+              <td class="py-2.5 px-3 text-center font-mono font-semibold">
+                ${item.completed} / ${item.count}
+              </td>
+              <td class="py-2.5 px-3 text-right font-mono font-bold text-amber-800 tabular-nums">
+                ${formatNumber(item.volume)} L
+                <span class="text-[10px] text-slate-400 font-normal block">(${(item.volume/1000).toFixed(1)} KL)</span>
+              </td>
+              <td class="py-2.5 px-3 text-right font-mono text-slate-900 font-semibold tabular-nums">
+                ${formatRupiah(item.rev)}
+              </td>
+              <td class="py-2.5 px-3 text-right font-mono text-rose-700 font-medium tabular-nums">
+                ${formatRupiah(item.hpp)}
+              </td>
+              <td class="py-2.5 px-3 text-right font-mono text-rose-600 font-medium tabular-nums">
+                ${formatRupiah(item.uangJalan)}
+              </td>
+              <td class="py-2.5 px-3 text-right font-mono font-bold ${net >= 0 ? 'text-emerald-700' : 'text-rose-700'} tabular-nums">
+                ${formatRupiah(net)}
+              </td>
+              <td class="py-2.5 px-3 text-center">
+                <span class="inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded ${
+                  isFullyLocked 
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+                    : 'bg-amber-50 text-amber-800 border border-amber-200'
+                }">
+                  ${isFullyLocked ? '✓ 100% TERKUNCI' : 'SEBAGIAN ON WAY'}
+                </span>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // 2. Report Table: Laporan Rekonsiliasi Surat Jalan (DO) Terinci
+      const doReportTBody = document.getElementById('reportDOTableBody');
+      if (!doReportTBody) return;
+
+      if (filtered.length === 0) {
+        doReportTBody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-400 font-mono">Tidak ada data Surat Jalan untuk rentang tanggal ini</td></tr>`;
+      } else {
+        doReportTBody.innerHTML = filtered.map(d => {
+          const truck = FLEET_TRUCKS.find(t => t.id === d.truckId);
+          const driver = DRIVERS.find(drv => drv.id === d.driverId);
+          const gross = (d.volume * d.sellPrice) - (d.volume * d.buyPrice);
+          const net = gross - d.uangJalan;
+          const isDone = d.status === 'SELESAI';
+
+          let statusBadge = 'bg-amber-50 text-amber-800 border-amber-300';
+          if (d.status === 'JALAN') statusBadge = 'bg-blue-50 text-blue-800 border-blue-200';
+          if (d.status === 'SELESAI') statusBadge = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+
+          return `
+            <tr class="hover:bg-slate-50/80">
+              <td class="py-2.5 px-3.5">
+                <span class="font-mono font-bold text-slate-900">${d.doNumber}</span>
+                <span class="text-[10px] text-slate-500 font-mono block">${d.date} • ${d.time} WIB</span>
+              </td>
+              <td class="py-2.5 px-3">
+                <span class="font-semibold text-slate-900 block max-w-xs truncate">${d.customer}</span>
+                <span class="text-[10px] font-mono text-slate-400">BBM Solar HSD Industri</span>
+              </td>
+              <td class="py-2.5 px-3">
+                <span class="font-mono font-semibold text-slate-800">${truck ? truck.plate : d.truckId}</span>
+                <span class="text-[11px] text-slate-500 block">${driver ? driver.name : '-'}</span>
+              </td>
+              <td class="py-2.5 px-3 text-right font-mono font-bold text-amber-800 tabular-nums">
+                ${(d.volume / 1000).toFixed(1)} KL
+                <span class="text-[10px] text-slate-400 font-normal block">(${formatNumber(d.volume)} L)</span>
+              </td>
+              <td class="py-2.5 px-3 text-right font-mono text-xs tabular-nums">
+                <div class="text-slate-900 font-semibold">${formatRupiah(d.sellPrice)}</div>
+                <div class="text-rose-600 text-[10px]">HPP: ${formatRupiah(d.buyPrice)}</div>
+              </td>
+              <td class="py-2.5 px-3 text-right font-mono text-slate-700 tabular-nums">
+                ${formatRupiah(d.uangJalan)}
+              </td>
+              <td class="py-2.5 px-3 text-right font-mono font-bold ${net >= 0 ? 'text-emerald-700' : 'text-rose-700'} tabular-nums">
+                ${formatRupiah(net)}
+              </td>
+              <td class="py-2.5 px-3 text-center">
+                <span class="inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded border ${statusBadge}">
+                  ${d.status === 'LOADING' ? '⏳ LOADING' : d.status === 'JALAN' ? '🚚 ON WAY' : '✅ SELESAI'}
+                </span>
+              </td>
+              <td class="py-2.5 px-3 text-center">
+                <span class="inline-flex items-center gap-1 font-mono text-[10px] font-semibold px-2 py-0.5 rounded ${
+                  isDone 
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+                    : 'bg-slate-100 text-slate-500 border border-slate-200'
+                }">
+                  ${isDone ? '✓ DITERIMA' : 'PENDING'}
+                </span>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      refreshIcons();
+    }
+
+    function exportReportToCSV() {
+      const startDate = document.getElementById('rf-date-start')?.value || 'Awal';
+      const endDate = document.getElementById('rf-date-end')?.value || 'Sekarang';
+      const selectedCustomer = document.getElementById('rf-select-customer')?.value || 'ALL';
+      const selectedTruck = document.getElementById('rf-select-truck')?.value || 'ALL';
+
+      const filtered = dispatches.filter(d => {
+        if (document.getElementById('rf-date-start')?.value && d.date < document.getElementById('rf-date-start').value) return false;
+        if (document.getElementById('rf-date-end')?.value && d.date > document.getElementById('rf-date-end').value) return false;
+        if (currentReportStatusFilter !== 'ALL' && d.status !== currentReportStatusFilter) return false;
+        if (selectedCustomer !== 'ALL' && d.customer !== selectedCustomer) return false;
+        if (selectedTruck !== 'ALL' && d.truckId !== selectedTruck) return false;
+        return true;
+      });
+
+      let csv = "LAPORAN AUDIT SURAT JALAN & MARGIN SOLAR HSD - PT SOLAR MANDIRI EXPRESS\n";
+      csv += `Periode Timeframe: ${startDate} s/d ${endDate}\n`;
+      csv += "Tanggal Unduh: " + new Date().toLocaleString('id-ID') + "\n\n";
+      csv += "No DO,Tanggal,Waktu,Customer,Plat Truk,Supir Bertugas,Volume (Liter),Harga Jual (Rp),HPP Beli (Rp),Uang Jalan (Rp),Laba Bersih DO (Rp),Status DO,Status Fisik\n";
+      
+      filtered.forEach(d => {
+        const truck = FLEET_TRUCKS.find(t => t.id === d.truckId);
+        const driver = DRIVERS.find(drv => drv.id === d.driverId);
+        const gross = (d.volume * d.sellPrice) - (d.volume * d.buyPrice);
+        const net = gross - d.uangJalan;
+        const statusFisik = d.status === 'SELESAI' ? 'Diterima' : 'Pending';
+
+        csv += `"${d.doNumber}","${d.date}","${d.time}","${d.customer}","${truck ? truck.plate : ''}","${driver ? driver.name : ''}",${d.volume},${d.sellPrice},${d.buyPrice},${d.uangJalan},${net},"${d.status}","${statusFisik}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `SolarFleet_Report_${startDate}_sd_${endDate}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // ==================== MODAL OPERATIONAL HANDLERS ====================
+    function openModalDispatch() {
+      document.getElementById('formEditId').value = '';
+      document.getElementById('dispatchModalTitle').innerText = 'Buat Surat Jalan (DO) Pengiriman';
+      
+      const nextDoNum = `DO/SME/${new Date().getFullYear()}/${1000 + dispatches.length + 1}`;
+      document.getElementById('formDoNumber').value = nextDoNum;
+      document.getElementById('formDoDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('formCustomer').value = '';
+      document.getElementById('formSellPrice').value = '14250';
+      document.getElementById('formBuyPrice').value = '12900';
+      document.getElementById('formUangJalan').value = '1500000';
+      document.getElementById('formStatus').value = 'LOADING';
+
+      populateModalSelects();
+      handleTruckSelect();
+      calculateModalLive();
+
+      const modal = document.getElementById('modalDispatch');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModalDispatch() {
+      const modal = document.getElementById('modalDispatch');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function saveDispatch(e) {
+      e.preventDefault();
+      const editId = document.getElementById('formEditId').value;
+      const doData = {
+        doNumber: document.getElementById('formDoNumber').value,
+        date: document.getElementById('formDoDate').value || new Date().toISOString().split('T')[0],
+        truckId: document.getElementById('formTruck').value,
+        driverId: document.getElementById('formDriver').value,
+        customer: document.getElementById('formCustomer').value,
+        volume: parseFloat(document.getElementById('formVolume').value),
+        sellPrice: parseFloat(document.getElementById('formSellPrice').value),
+        buyPrice: parseFloat(document.getElementById('formBuyPrice').value),
+        uangJalan: parseFloat(document.getElementById('formUangJalan').value),
+        status: document.getElementById('formStatus').value,
+        time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      };
+
+      const dbPayload = {
+        do_number: doData.doNumber,
+        date: doData.date,
+        time: doData.time,
+        truck_id: doData.truckId,
+        driver_id: doData.driverId,
+        customer: doData.customer,
+        volume: doData.volume,
+        sell_price: doData.sellPrice,
+        buy_price: doData.buyPrice,
+        uang_jalan: doData.uangJalan,
+        status: doData.status,
+        updated_at: new Date().toISOString()
+      };
+
+      if (editId) {
+        const idx = dispatches.findIndex(d => d.id === editId);
+        if (idx !== -1) {
+          dispatches[idx] = { ...dispatches[idx], ...doData };
+          showToast(`Surat Jalan ${doData.doNumber} berhasil diperbarui!`);
+        }
+
+        if (supabaseClient && isSupabaseConnected) {
+          try {
+            await supabaseClient.from('dispatches').update(dbPayload).eq('id', editId);
+          } catch (err) {
+            console.error('Supabase update dispatch error:', err);
+          }
+        }
+      } else {
+        const newId = `DSP-${String(dispatches.length + 1).padStart(2, '0')}`;
+        dispatches.unshift({ id: newId, ...doData });
+        showToast(`Surat Jalan ${doData.doNumber} berhasil dibuat!`);
+
+        if (supabaseClient && isSupabaseConnected) {
+          try {
+            await supabaseClient.from('dispatches').insert([{ id: newId, ...dbPayload }]);
+          } catch (err) {
+            console.error('Supabase insert dispatch error:', err);
+          }
+        }
+      }
+
+      closeModalDispatch();
+      refreshAllViews();
+    }
+
+    function editDispatch(id) {
+      const d = dispatches.find(item => item.id === id);
+      if (!d) return;
+
+      document.getElementById('dispatchModalTitle').innerText = `Edit Surat Jalan (${d.doNumber})`;
+      document.getElementById('formEditId').value = d.id;
+      document.getElementById('formDoNumber').value = d.doNumber;
+      document.getElementById('formDoDate').value = d.date || new Date().toISOString().split('T')[0];
+      
+      populateModalSelects();
+
+      document.getElementById('formTruck').value = d.truckId;
+      document.getElementById('formDriver').value = d.driverId;
+      document.getElementById('formCustomer').value = d.customer;
+      document.getElementById('formVolume').value = d.volume;
+      document.getElementById('formSellPrice').value = d.sellPrice;
+      document.getElementById('formBuyPrice').value = d.buyPrice;
+      document.getElementById('formUangJalan').value = d.uangJalan;
+      document.getElementById('formStatus').value = d.status;
+
+      calculateModalLive();
+
+      const modal = document.getElementById('modalDispatch');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    async function deleteDispatch(id) {
+      const d = dispatches.find(item => item.id === id);
+      if (!d) return;
+      
+      dispatches = dispatches.filter(item => item.id !== id);
+      showToast(`Surat Jalan ${d.doNumber} berhasil dihapus.`);
+
+      if (supabaseClient && isSupabaseConnected) {
+        try {
+          await supabaseClient.from('dispatches').delete().eq('id', id);
+        } catch (err) {
+          console.error('Supabase delete dispatch error:', err);
+        }
+      }
+
+      refreshAllViews();
+    }
+
+    // ==================== TRUCK MODAL HANDLERS ====================
+    function openModalTruck() {
+      document.getElementById('truckEditId').value = '';
+      document.getElementById('truckModalTitle').innerText = 'Tambah Armada Truk Tangki';
+      document.getElementById('formTruckPlate').value = '';
+      document.getElementById('formTruckType').value = 'Hino Ranger FL 260';
+      document.getElementById('formTruckCapacity').value = '8000';
+      document.getElementById('formTruckTera').value = '2027-12-31';
+      document.getElementById('formTruckKir').value = '2027-10-31';
+      document.getElementById('formTruckStatus').value = 'STANDBY';
+
+      populateModalSelects();
+
+      const modal = document.getElementById('modalTruck');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModalTruck() {
+      const modal = document.getElementById('modalTruck');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function saveTruck(e) {
+      e.preventDefault();
+      const editId = document.getElementById('truckEditId').value;
+      const truckData = {
+        plate: document.getElementById('formTruckPlate').value.toUpperCase(),
+        type: document.getElementById('formTruckType').value,
+        capacity: parseInt(document.getElementById('formTruckCapacity').value),
+        assignedDriver: document.getElementById('formTruckDriver').value,
+        teraExpiry: document.getElementById('formTruckTera').value,
+        kirExpiry: document.getElementById('formTruckKir').value,
+        status: document.getElementById('formTruckStatus').value
+      };
+
+      const dbPayload = {
+        plate: truckData.plate,
+        type: truckData.type,
+        capacity: truckData.capacity,
+        assigned_driver_id: truckData.assignedDriver || null,
+        tera_expiry: truckData.teraExpiry,
+        kir_expiry: truckData.kirExpiry,
+        status: truckData.status,
+        updated_at: new Date().toISOString()
+      };
+
+      if (editId) {
+        const idx = FLEET_TRUCKS.findIndex(t => t.id === editId);
+        if (idx !== -1) {
+          FLEET_TRUCKS[idx] = { ...FLEET_TRUCKS[idx], ...truckData };
+          showToast(`Armada ${truckData.plate} berhasil diperbarui.`);
+        }
+
+        if (supabaseClient && isSupabaseConnected) {
+          try {
+            await supabaseClient.from('trucks').update(dbPayload).eq('id', editId);
+          } catch (err) {
+            console.error('Supabase update truck error:', err);
+          }
+        }
+      } else {
+        const newId = `T${String(FLEET_TRUCKS.length + 1).padStart(2, '0')}`;
+        FLEET_TRUCKS.push({ id: newId, ...truckData });
+        showToast(`Armada ${truckData.plate} berhasil ditambahkan!`);
+
+        if (supabaseClient && isSupabaseConnected) {
+          try {
+            await supabaseClient.from('trucks').insert([{ id: newId, ...dbPayload }]);
+          } catch (err) {
+            console.error('Supabase insert truck error:', err);
+          }
+        }
+      }
+
+      closeModalTruck();
+      refreshAllViews();
+    }
+
+    function editTruck(id) {
+      const t = FLEET_TRUCKS.find(truck => truck.id === id);
+      if (!t) return;
+
+      document.getElementById('truckModalTitle').innerText = `Edit Armada Truk (${t.plate})`;
+      document.getElementById('truckEditId').value = t.id;
+      document.getElementById('formTruckPlate').value = t.plate;
+      document.getElementById('formTruckType').value = t.type;
+      document.getElementById('formTruckCapacity').value = t.capacity;
+
+      populateModalSelects();
+
+      document.getElementById('formTruckDriver').value = t.assignedDriver || '';
+      document.getElementById('formTruckTera').value = t.teraExpiry;
+      document.getElementById('formTruckKir').value = t.kirExpiry;
+      document.getElementById('formTruckStatus').value = t.status;
+
+      const modal = document.getElementById('modalTruck');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    async function deleteTruck(id) {
+      const activeDO = dispatches.find(d => d.truckId === id && d.status !== 'SELESAI');
+      if (activeDO) {
+        showToast(`Tidak dapat menghapus truk: Unit sedang memiliki Surat Jalan aktif (${activeDO.doNumber})`, 'error');
+        return;
+      }
+      FLEET_TRUCKS = FLEET_TRUCKS.filter(t => t.id !== id);
+      showToast('Armada truk berhasil dihapus.');
+
+      if (supabaseClient && isSupabaseConnected) {
+        try {
+          await supabaseClient.from('trucks').delete().eq('id', id);
+        } catch (err) {
+          console.error('Supabase delete truck error:', err);
+        }
+      }
+
+      refreshAllViews();
+    }
+
+    // ==================== EMPLOYEE / DRIVER MODAL HANDLERS ====================
+    function openModalEmployee() {
+      document.getElementById('empEditId').value = '';
+      document.getElementById('employeeModalTitle').innerText = 'Tambah Karyawan & Supir';
+      document.getElementById('formEmpName').value = '';
+      document.getElementById('formEmpRole').value = 'Supir Tangki Utama';
+      document.getElementById('formEmpPhone').value = '';
+      document.getElementById('formEmpBase').value = '120000';
+      document.getElementById('formEmpRitase').value = '150000';
+      document.getElementById('formEmpKasbon').value = '0';
+
+      const modal = document.getElementById('modalEmployee');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModalEmployee() {
+      const modal = document.getElementById('modalEmployee');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function saveEmployee(e) {
+      e.preventDefault();
+      const editId = document.getElementById('empEditId').value;
+      const empData = {
+        name: document.getElementById('formEmpName').value,
+        role: document.getElementById('formEmpRole').value,
+        phone: document.getElementById('formEmpPhone').value,
+        baseDaily: parseFloat(document.getElementById('formEmpBase').value) || 0,
+        ritaseBonus: parseFloat(document.getElementById('formEmpRitase').value) || 0,
+        kasbon: parseFloat(document.getElementById('formEmpKasbon').value) || 0,
+      };
+
+      const dbPayload = {
+        name: empData.name,
+        role: empData.role,
+        phone: empData.phone,
+        base_daily: empData.baseDaily,
+        ritase_bonus: empData.ritaseBonus,
+        kasbon: empData.kasbon,
+        updated_at: new Date().toISOString()
+      };
+
+      if (editId) {
+        const idx = DRIVERS.findIndex(d => d.id === editId);
+        if (idx !== -1) {
+          DRIVERS[idx] = { ...DRIVERS[idx], ...empData };
+          showToast(`Data karyawan ${empData.name} berhasil diperbarui.`);
+        }
+
+        if (supabaseClient && isSupabaseConnected) {
+          try {
+            await supabaseClient.from('drivers').update(dbPayload).eq('id', editId);
+          } catch (err) {
+            console.error('Supabase update driver error:', err);
+          }
+        }
+      } else {
+        const newId = `D${String(DRIVERS.length + 1).padStart(2, '0')}`;
+        DRIVERS.push({ id: newId, ...empData });
+        showToast(`Karyawan ${empData.name} berhasil ditambahkan!`);
+
+        if (supabaseClient && isSupabaseConnected) {
+          try {
+            await supabaseClient.from('drivers').insert([{ id: newId, ...dbPayload }]);
+          } catch (err) {
+            console.error('Supabase insert driver error:', err);
+          }
+        }
+      }
+
+      closeModalEmployee();
+      refreshAllViews();
+    }
+
+    function editEmployee(id) {
+      const d = DRIVERS.find(driver => driver.id === id);
+      if (!d) return;
+
+      document.getElementById('employeeModalTitle').innerText = `Edit Karyawan (${d.name})`;
+      document.getElementById('empEditId').value = d.id;
+      document.getElementById('formEmpName').value = d.name;
+      document.getElementById('formEmpRole').value = d.role;
+      document.getElementById('formEmpPhone').value = d.phone || '';
+      document.getElementById('formEmpBase').value = d.baseDaily;
+      document.getElementById('formEmpRitase').value = d.ritaseBonus;
+      document.getElementById('formEmpKasbon').value = d.kasbon;
+
+      const modal = document.getElementById('modalEmployee');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    async function deleteEmployee(id) {
+      const activeDO = dispatches.find(d => d.driverId === id && d.status !== 'SELESAI');
+      if (activeDO) {
+        showToast(`Tidak dapat menghapus supir: Sedang bertugas pada DO aktif (${activeDO.doNumber})`, 'error');
+        return;
+      }
+      DRIVERS = DRIVERS.filter(d => d.id !== id);
+      showToast('Karyawan berhasil dihapus.');
+
+      if (supabaseClient && isSupabaseConnected) {
+        try {
+          await supabaseClient.from('drivers').delete().eq('id', id);
+        } catch (err) {
+          console.error('Supabase delete driver error:', err);
+        }
+      }
+
+      refreshAllViews();
+    }
+
+    // ==================== INITIALIZATION ====================
+    window.addEventListener('DOMContentLoaded', () => {
+      initSupabase();
+      refreshAllViews();
+
+      // Realtime Clock
+      setInterval(() => {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
+        const el = document.getElementById('realtime-clock');
+        if (el) el.innerText = timeStr;
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
